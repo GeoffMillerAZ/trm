@@ -1,0 +1,79 @@
+version: '3'
+
+vars:
+  AWS_ACCOUNT_ID: "754419183698"
+  AWS_REGION: "us-west-2"
+  ECR_REPOSITORY: "trm-blockexplorer"
+  ECR_URI: "{{.AWS_ACCOUNT_ID}}.dkr.ecr.{{.AWS_REGION}}.amazonaws.com"
+  FULL_ECR_URI: "{{.ECR_URI}}/{{.ECR_REPOSITORY}}"
+  
+tasks:
+  build:
+    desc: Build Docker image locally
+    vars:
+      TAG: '{{.TAG | default "latest"}}'
+    cmds:
+      - |
+        echo "Building Docker image..."
+        docker build \
+          --platform linux/amd64 \
+          --tag {{.FULL_ECR_URI}}:{{.TAG}} \
+          --tag {{.FULL_ECR_URI}}:latest \
+          .
+
+  push:
+    desc: Push Docker image to ECR
+    deps: [ecr:login]
+    vars:
+      TAG: '{{.TAG | default "latest"}}'
+    cmds:
+      - docker push {{.FULL_ECR_URI}}:{{.TAG}}
+      - docker push {{.FULL_ECR_URI}}:latest
+
+  build:push:
+    desc: Build and push Docker image to ECR
+    vars:
+      TAG: '{{.TAG | default "latest"}}'
+    cmds:
+      - task: build
+        vars:
+          TAG: "{{.TAG}}"
+      - task: push
+        vars:
+          TAG: "{{.TAG}}"
+
+  ecr:login:
+    desc: Login to ECR
+    cmds:
+      - aws ecr get-login-password --region {{.AWS_REGION}} | docker login --username AWS --password-stdin {{.ECR_URI}}
+
+  ecr:create-repo:
+    desc: Create ECR repository if it doesn't exist
+    cmds:
+      - |
+        aws ecr describe-repositories --repository-names {{.ECR_REPOSITORY}} --region {{.AWS_REGION}} 2>/dev/null || \
+        aws ecr create-repository \
+          --repository-name {{.ECR_REPOSITORY}} \
+          --region {{.AWS_REGION}} \
+          --image-scanning-configuration scanOnPush=true
+
+  run:local:
+    desc: Run container locally for testing
+    vars:
+      TAG: '{{.TAG | default "latest"}}'
+    cmds:
+      - |
+        docker run --rm -it \
+          -p 8000:8000 \
+          -e ENVIRONMENT=local \
+          -e PROJECT_NAME=trm-blockexplorer \
+          -e REGION=us-west-2 \
+          -e PORT=8000 \
+          {{.FULL_ECR_URI}}:{{.TAG}}
+
+  clean:
+    desc: Clean up local Docker images
+    cmds:
+      - docker rmi {{.FULL_ECR_URI}}:latest || true
+      - docker rmi {{.FULL_ECR_URI}}:$(git rev-parse --short HEAD) || true
+      - docker system prune -f

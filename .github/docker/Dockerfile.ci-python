@@ -1,0 +1,43 @@
+# CI Container for Python Testing
+# Matches Devbox tool versions for consistency
+
+FROM python:3.11-slim AS base
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    gcc \
+    libc6-dev \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install specific versions matching Devbox
+ARG UV_VERSION=0.4.9
+ARG RUFF_VERSION=0.8.3
+ARG MYPY_VERSION=1.14.0
+ARG PYTEST_VERSION=8.3.4
+
+# Install UV
+RUN curl -LsSf https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-installer.sh | sh && \
+    mv /root/.cargo/bin/uv /usr/local/bin/
+
+# Create working directory
+WORKDIR /workspace
+
+# Install Python tools globally
+RUN pip install --no-cache-dir \
+    ruff==${RUFF_VERSION} \
+    mypy==${MYPY_VERSION} \
+    pytest==${PYTEST_VERSION} \
+    pytest-cov \
+    pytest-asyncio \
+    pytest-xdist
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_SYSTEM_PYTHON=1
+
+# Default command
+CMD ["/bin/bash"]

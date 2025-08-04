@@ -1,0 +1,19 @@
+# Conftest configuration for OPA policies
+
+# Policy locations
+policy:
+  - iac/policies/opa
+
+# Data locations  
+data:
+  - iac/policies/opa/data
+
+# Namespace to query
+namespace:
+  - terraform.security
+
+# Output format
+output: json
+
+# Fail on warnings in production
+fail-on-warn: false

@@ -1,0 +1,108 @@
+# Security Scanning Configuration
+# Configuration for security scanning tools and policies
+
+# CodeGuru Security Configuration
+codeguru:
+  enabled: true
+  fail_on_severity: CRITICAL  # CRITICAL, HIGH, MEDIUM, LOW
+  scan_on_pr: true
+  scan_on_push: true
+  exclude_paths:
+    - "tests/**"
+    - "docs/**"
+    - "*.md"
+  
+# Inspector Configuration  
+inspector:
+  enabled: true
+  lambda_scanning: true
+  ec2_scanning: false
+  ecr_scanning: false
+  sbom_export:
+    enabled: true
+    format: CYCLONEDX_1_4  # or SPDX_2_3
+    frequency: weekly
+    retention_days: 365
+  vulnerability_thresholds:
+    critical: 0  # Fail if any critical vulnerabilities
+    high: 5      # Fail if more than 5 high vulnerabilities
+    
+# Dependency Scanning
+dependency_scanning:
+  safety:
+    enabled: true
+    fail_on_vulnerabilities: true
+    ignore_ids: []  # CVE IDs to ignore
+  pip_audit:
+    enabled: true
+    fail_on_vulnerabilities: true
+    
+# SAST Configuration
+sast:
+  bandit:
+    enabled: true
+    confidence_level: medium  # low, medium, high
+    severity_level: medium    # low, medium, high
+    exclude_paths:
+      - "tests/**"
+      
+# Secret Scanning
+secret_scanning:
+  enabled: true
+  tools:
+    - gitleaks
+    - trufflehog
+  custom_patterns:
+    - name: "AWS Access Key"
+      pattern: "AKIA[0-9A-Z]{16}"
+    - name: "AWS Secret Key"
+      pattern: "[0-9a-zA-Z/+=]{40}"
+      
+# Security Policies
+security_policies:
+  # Fail build on these conditions
+  fail_on:
+    - critical_vulnerabilities
+    - exposed_secrets
+    - high_severity_sast_findings
+    
+  # Warn but don't fail
+  warn_on:
+    - medium_vulnerabilities
+    - outdated_dependencies
+    - missing_security_headers
+    
+# Notification Settings
+notifications:
+  security_findings:
+    enabled: true
+    channels:
+      - email
+      - slack
+    severity_threshold: HIGH
+    
+# Compliance Standards
+compliance:
+  standards:
+    - OWASP_TOP_10
+    - CIS_BENCHMARK
+    - AWS_FOUNDATIONAL
+  scan_frequency: weekly
+  
+# Integration Settings  
+integrations:
+  github:
+    post_pr_comments: true
+    create_issues_for_critical: true
+    update_pr_status: true
+  
+  aws:
+    upload_to_s3: true
+    send_to_security_hub: false  # Enable when Security Hub is configured
+    
+# Performance Settings
+performance:
+  parallel_scans: true
+  max_scan_duration: 300  # seconds
+  cache_results: true
+  cache_ttl: 3600  # seconds

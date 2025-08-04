@@ -1,0 +1,39 @@
+{
+  "resource": "/health",
+  "path": "/health",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Host": "api.example.com",
+    "User-Agent": "ELB-HealthChecker/2.0",
+    "X-Forwarded-For": "10.0.0.1",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": ["application/json"],
+    "Content-Type": ["application/json"]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": {
+    "stage": "dev"
+  },
+  "requestContext": {
+    "resourcePath": "/health",
+    "httpMethod": "GET",
+    "path": "/dev/health",
+    "stage": "dev",
+    "requestId": "test-health-check-001",
+    "identity": {
+      "sourceIp": "10.0.0.1",
+      "userAgent": "ELB-HealthChecker/2.0"
+    },
+    "domainName": "api.example.com",
+    "apiId": "test-api-id"
+  },
+  "body": null,
+  "isBase64Encoded": false
+}

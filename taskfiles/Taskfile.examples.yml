@@ -1,0 +1,214 @@
+version: '3'
+
+vars:
+  EXAMPLES_DIR: examples
+
+tasks:
+  list:
+    desc: List all available example modules
+    cmds:
+      - |
+        echo "Available Example Modules:"
+        echo "========================="
+        if [ -d "examples" ]; then
+          for dir in examples/*/; do
+            if [ -d "$dir" ] && [ "$(basename "$dir")" != "_template" ]; then
+              module_name=$(basename "$dir")
+              if [ -f "$dir/.example-module.yml" ]; then
+                description=$(grep "description:" "$dir/.example-module.yml" | sed 's/description: *//' | tr -d '"')
+                echo "  $module_name - $description"
+              else
+                echo "  $module_name - (no description available)"
+              fi
+            fi
+          done
+          
+          # Show template as well
+          if [ -d "examples/_template" ]; then
+            echo ""
+            echo "Module Template:"
+            echo "  _template - Template structure for creating new example modules"
+          fi
+          
+          # Check if no modules found
+          module_count=$(find examples/ -maxdepth 1 -type d -not -name "_template" -not -name "examples" | wc -l)
+          if [ "$module_count" -eq 0 ]; then
+            echo ""
+            echo "No example modules available yet."
+            echo "See examples/_template/ for creating new modules."
+          fi
+        else
+          echo "Examples directory not found."
+        fi
+
+  info:
+    desc: Display detailed information about an example module
+    cmds:
+      - |
+        MODULE={{.CLI_ARGS}}
+        if [ -z "$MODULE" ]; then
+          echo "Usage: task examples:info -- MODULE_NAME"
+          echo "Example: task examples:info -- _template"
+          exit 1
+        fi
+        
+        MODULE_DIR="examples/$MODULE"
+        if [ ! -d "$MODULE_DIR" ]; then
+          echo "Module '$MODULE' not found in examples directory."
+          echo "Available modules:"
+          task examples:list
+          exit 1
+        fi
+        
+        echo "Module Information: $MODULE"
+        echo "================================="
+        
+        # Show metadata if available
+        if [ -f "$MODULE_DIR/.example-module.yml" ]; then
+          echo ""
+          echo "Metadata:"
+          echo "---------"
+          cat "$MODULE_DIR/.example-module.yml"
+        fi
+        
+        # Show README if available
+        if [ -f "$MODULE_DIR/README.md" ]; then
+          echo ""
+          echo "README:"
+          echo "-------"
+          head -20 "$MODULE_DIR/README.md"
+          if [ $(wc -l < "$MODULE_DIR/README.md") -gt 20 ]; then
+            echo "... (truncated, see $MODULE_DIR/README.md for full content)"
+          fi
+        fi
+        
+        # Show directory structure
+        echo ""
+        echo "Directory Structure:"
+        echo "-------------------"
+        if command -v tree >/dev/null 2>&1; then
+          tree "$MODULE_DIR" -L 2
+        else
+          find "$MODULE_DIR" -type d | head -10 | sed 's|^examples/||'
+        fi
+
+  validate:
+    desc: Validate example module structure and metadata
+    cmds:
+      - |
+        MODULE={{.CLI_ARGS}}
+        if [ -z "$MODULE" ]; then
+          echo "Usage: task examples:validate -- MODULE_NAME"
+          exit 1
+        fi
+        
+        MODULE_DIR="examples/$MODULE"
+        if [ ! -d "$MODULE_DIR" ]; then
+          echo "Module '$MODULE' not found."
+          exit 1
+        fi
+        
+        echo "Validating module: $MODULE"
+        echo "=========================="
+        
+        # Check required files
+        REQUIRED_FILES=("README.md" ".example-module.yml")
+        REQUIRED_DIRS=("src" "tests")
+        
+        for file in "${REQUIRED_FILES[@]}"; do
+          if [ -f "$MODULE_DIR/$file" ]; then
+            echo "✓ $file found"
+          else
+            echo "✗ $file missing"
+          fi
+        done
+        
+        for dir in "${REQUIRED_DIRS[@]}"; do
+          if [ -d "$MODULE_DIR/$dir" ]; then
+            echo "✓ $dir/ directory found"
+          else
+            echo "✗ $dir/ directory missing"
+          fi
+        done
+        
+        # Validate metadata format
+        if [ -f "$MODULE_DIR/.example-module.yml" ]; then
+          echo ""
+          echo "Metadata validation:"
+          echo "-------------------"
+          # Basic YAML syntax check if yq is available
+          if command -v yq >/dev/null 2>&1; then
+            if yq eval '.' "$MODULE_DIR/.example-module.yml" >/dev/null 2>&1; then
+              echo "✓ YAML syntax valid"
+            else
+              echo "✗ YAML syntax invalid"
+            fi
+          else
+            echo "~ YAML validation skipped (yq not available)"
+          fi
+        fi
+
+  clean:
+    desc: Remove all example modules (keep only _template)
+    cmds:
+      - |
+        echo "This will remove all example modules except _template."
+        echo "This action cannot be undone."
+        read -p "Are you sure? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+          for dir in examples/*/; do
+            if [ -d "$dir" ] && [ "$(basename "$dir")" != "_template" ]; then
+              module_name=$(basename "$dir")
+              echo "Removing module: $module_name"
+              rm -rf "$dir"
+            fi
+          done
+          echo "Example modules removed."
+        else
+          echo "Operation cancelled."
+        fi
+
+  scaffold:
+    desc: Create a new example module from template
+    cmds:
+      - |
+        MODULE={{.CLI_ARGS}}
+        if [ -z "$MODULE" ]; then
+          echo "Usage: task examples:scaffold -- MODULE_NAME"
+          echo "Example: task examples:scaffold -- user-management"
+          exit 1
+        fi
+        
+        MODULE_DIR="examples/$MODULE"
+        TEMPLATE_DIR="examples/_template"
+        
+        if [ -d "$MODULE_DIR" ]; then
+          echo "Module '$MODULE' already exists."
+          exit 1
+        fi
+        
+        if [ ! -d "$TEMPLATE_DIR" ]; then
+          echo "Template directory not found. Run 'task examples:setup' first."
+          exit 1
+        fi
+        
+        echo "Creating new module: $MODULE"
+        echo "=============================="
+        
+        # Copy template
+        cp -r "$TEMPLATE_DIR" "$MODULE_DIR"
+        
+        # Update metadata
+        if [ -f "$MODULE_DIR/.example-module.yml" ]; then
+          sed -i.bak "s/Template Module/$MODULE/g" "$MODULE_DIR/.example-module.yml"
+          sed -i.bak "s/Template for creating new example modules/Example module for $MODULE/g" "$MODULE_DIR/.example-module.yml"
+          rm "$MODULE_DIR/.example-module.yml.bak" 2>/dev/null || true
+        fi
+        
+        echo "Module '$MODULE' created successfully!"
+        echo "Next steps:"
+        echo "1. Edit $MODULE_DIR/.example-module.yml with module details"
+        echo "2. Update $MODULE_DIR/README.md with module documentation"
+        echo "3. Implement your example in $MODULE_DIR/src/"
+        echo "4. Add tests in $MODULE_DIR/tests/"

@@ -1,0 +1,46 @@
+{
+  "Records": [
+    {
+      "eventID": "1",
+      "eventName": "INSERT",
+      "eventVersion": "1.1",
+      "eventSource": "aws:dynamodb",
+      "awsRegion": "us-west-2",
+      "dynamodb": {
+        "Keys": {
+          "address": {
+            "S": "0x742d35Cc6634C0532925a3b844Bc9e7595f89590"
+          }
+        },
+        "NewImage": {
+          "address": {
+            "S": "0x742d35Cc6634C0532925a3b844Bc9e7595f89590"
+          },
+          "label": {
+            "S": "BitGo Wallet"
+          },
+          "risk_score": {
+            "N": "2"
+          },
+          "tags": {
+            "SS": ["exchange", "custodial"]
+          },
+          "added_by": {
+            "S": "test-user"
+          },
+          "added_at": {
+            "S": "2024-01-15T10:30:00Z"
+          },
+          "status": {
+            "S": "active"
+          }
+        },
+        "ApproximateCreationDateTime": 1705319400,
+        "SequenceNumber": "111",
+        "SizeBytes": 256,
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "eventSourceARN": "arn:aws:dynamodb:us-west-2:123456789012:table/address-watchlist/stream/2024-01-15T10:30:00.000"
+    }
+  ]
+}

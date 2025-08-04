@@ -1,0 +1,94 @@
+# Test configuration for mock blockchain testing
+environment: testing
+debug: true
+
+# API Configuration
+api:
+  title: "TRM Block Explorer API (Test Mode)"
+  description: "Test instance with mock blockchain data"
+  version: "2.0.0"
+
+# Enable all mocks
+use_mock_blockchain: true
+use_file_based_infrastructure: true
+
+# Test addresses with descriptive names
+test_addresses:
+  # Well-known addresses
+  eth2_deposit_contract:
+    address: "0x00000000219ab540356cBB839Cbe05303d7705Fa"
+    balance_eth: 36668162.325
+    description: "ETH2 deposit contract with massive balance"
+  
+  vitalik:
+    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+    balance_eth: 5234.567890123456789012
+    description: "Vitalik Buterin's address"
+  
+  # Test scenarios
+  regular_user:
+    address: "0x742d35Cc6634C0532925a3b844Bc9e7595ED6fF5"
+    balance_eth: 1.5
+    description: "Regular user with small balance"
+  
+  empty_wallet:
+    address: "0x0000000000000000000000000000000000000000"
+    balance_eth: 0
+    description: "Empty address (zero balance)"
+  
+  dust_amount:
+    address: "0x1234567890123456789012345678901234567890"
+    balance_eth: 0.000000000123456789
+    description: "Address with dust amount"
+  
+  # Edge cases
+  whale:
+    address: "0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"
+    balance_eth: 999999.999999999999999999
+    description: "Whale address with ~1M ETH"
+  
+  small_holder:
+    address: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    balance_eth: 0.1
+    description: "Small holder with 0.1 ETH"
+  
+  medium_holder:
+    address: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+    balance_eth: 2.0
+    description: "Medium holder with 2 ETH"
+  
+  large_holder:
+    address: "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+    balance_eth: 50.0
+    description: "Large holder with 50 ETH"
+  
+  max_balance:
+    address: "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+    balance_eth: 115792089237316195423570985008687907853.269984665640564039457
+    description: "Maximum possible ETH balance"
+
+# Invalid addresses for error testing
+invalid_addresses:
+  - "0xinvalid"
+  - "not-an-address"
+  - "0x123"  # Too short
+  - "0x00000000219ab540356cBB839Cbe05303d7705FaXX"  # Too long
+  - ""  # Empty string
+  - "00000000219ab540356cBB839Cbe05303d7705Fa"  # Missing 0x prefix
+
+# Cache settings for testing
+cache:
+  enabled: true
+  ttl_seconds: 60
+
+# Logging for testing
+logging:
+  level: DEBUG
+  format: text
+  enable_cloudwatch: false
+
+# Workspace for file-based infrastructure
+workspace:
+  base_path: "/app/workspace"
+  file_cache_max_entries: 100
+  file_db_max_history_per_address: 10

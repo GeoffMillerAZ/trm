@@ -1,0 +1,54 @@
+version: '3.8'
+
+# Development-only services for local development
+# Usage: docker-compose -f docker-compose.dev.yml up
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8001:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+
+  # DynamoDB Admin UI for local development
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    ports:
+      - "8002:8001"
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=us-west-2
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+
+  # Redis Commander for Redis UI
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    ports:
+      - "8003:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis_data:
+  dynamodb_data:

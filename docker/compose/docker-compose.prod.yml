@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: docker/dockerfiles/Dockerfile.python
+    ports:
+      - "8000:8000"
+    environment:
+      - INFURA_API_KEY=${INFURA_API_KEY:-your_infura_key_here}
+      - ENVIRONMENT=local
+      - REDIS_URL=redis://redis:6379
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_DEFAULT_REGION=us-west-2
+    depends_on:
+      - redis
+      - dynamodb-local
+    volumes:
+      - ./src:/app/src
+    command: uv run python -m src.main
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8001:8000"  # Map to different port to avoid conflict with API
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+
+  # DynamoDB Admin UI for local development
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    ports:
+      - "8002:8001"
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=us-west-2
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+
+volumes:
+  redis_data:
+  dynamodb_data:

@@ -1,0 +1,75 @@
+# Configuration for local development using Docker services
+environment: "local"
+debug: true
+
+# API Configuration
+api_title: "TRM Block Explorer API (Local - Docker)"
+api_version: "2.0.0"
+api_description: "Local development with Docker services"
+
+# Infrastructure
+use_file_based_infrastructure: false
+
+# Cache Configuration (Docker Redis)
+cache_enabled: true
+redis_url: "redis://localhost:6379"
+redis_password: null
+cache_ttl_seconds: 300
+
+# Database Configuration (Docker DynamoDB Local)
+dynamodb_endpoint: "http://localhost:8000"
+aws_region: "us-west-2"
+aws_access_key_id: "local"
+aws_secret_access_key: "local"
+
+# Table Names
+address_watchlist_table: "address-watchlist-local"
+suspicious_transactions_table: "suspicious-transactions-local"
+investigation_notes_table: "investigation-notes-local"
+
+# Infura Configuration (Requires real API key)
+infura_api_key: "${INFURA_API_KEY}"
+infura_network: "mainnet"
+infura_project_secret: "${INFURA_PROJECT_SECRET}"
+
+# Logging Configuration
+log_level: "DEBUG"
+log_format: "json"
+enable_cloudwatch_logging: false
+log_file_path: "workspace/logs/app.log"
+log_rotation_size: "50MB"
+log_rotation_count: 5
+
+# Secrets Configuration
+secrets_backend: "environment"
+secrets_prefix: "trm-blockexplorer/"
+parameters_prefix: "/trm-blockexplorer/"
+
+# Tracing Configuration
+tracing_backend: "console"
+tracing_service_name: "trm-blockexplorer-local"
+tracing_sampling_rate: 1.0
+tracing_enabled: true
+
+# Health Check Configuration
+health_check_timeout: 15
+health_check_interval: 30
+
+# Rate Limiting (Moderate for local testing)
+rate_limit_enabled: true
+rate_limit_requests_per_minute: 300
+rate_limit_burst: 50
+
+# API Configuration
+api_cors_origins: ["http://localhost:3000", "http://localhost:8080", "http://127.0.0.1:3000"]
+api_cors_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+api_max_request_size: 2097152  # 2MB
+api_timeout: 30
+
+# Monitoring Configuration
+metrics_enabled: true
+metrics_port: 9090
+prometheus_enabled: true
+
+# Development Settings
+enable_cors: true

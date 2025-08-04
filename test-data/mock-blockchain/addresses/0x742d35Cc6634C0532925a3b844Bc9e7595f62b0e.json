@@ -1,0 +1,24 @@
+{
+  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f62b0e",
+  "balance": "1234567890000000000",
+  "transactionCount": 42,
+  "lastActivity": "2024-01-15T10:30:00Z",
+  "transactions": [
+    {
+      "hash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "from": "0x742d35Cc6634C0532925a3b844Bc9e7595f62b0e",
+      "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "value": "1000000000000000000",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "blockNumber": 18000000
+    },
+    {
+      "hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+      "from": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "to": "0x742d35Cc6634C0532925a3b844Bc9e7595f62b0e",
+      "value": "500000000000000000",
+      "timestamp": "2024-01-14T15:45:00Z",
+      "blockNumber": 17999500
+    }
+  ]
+}

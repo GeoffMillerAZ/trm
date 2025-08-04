@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8080"
+    environment:
+      # Use file-based environment for persistent testing
+      - ENVIRONMENT=file_based
+      - USE_MOCK_BLOCKCHAIN=true
+      - USE_FILE_BASED_INFRASTRUCTURE=true
+      - WORKSPACE_BASE_PATH=/app/workspace
+      - INFURA_API_KEY=dummy_key_for_file_based_testing
+      
+      # Logging configuration for testing
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=text
+      - ENABLE_CLOUDWATCH_LOGGING=false
+      
+      # Cache configuration (using mock)
+      - CACHE_ENABLED=true
+      - CACHE_TTL_SECONDS=60
+      
+      # Tracing configuration
+      - TRACING_BACKEND=silent
+      - TRACING_SERVICE_NAME=trm-blockexplorer-test
+      
+      # Secrets backend
+      - SECRETS_BACKEND=environment
+      
+      # API Configuration
+      - API_TITLE=TRM Block Explorer API (Test Mode)
+      - DEBUG=true
+      
+      # CORS for testing tools
+      - ENABLE_CORS=true
+      - CORS_ORIGINS=["*"]
+      
+    volumes:
+      - ../../src:/app/src
+      - ../../workspace:/app/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # Optional: Include a simple web UI for testing
+  # api-tester:
+  #   image: swaggerapi/swagger-ui:latest
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - URL=http://localhost:8000/openapi.json
+  #     - SWAGGER_JSON=/openapi.json
+  #   depends_on:
+  #     - api
+
+volumes:
+  workspace:

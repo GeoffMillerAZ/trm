@@ -1,0 +1,85 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install project dependencies
+    cmds:
+      - uv sync
+
+  install:dev:
+    desc: Install with development dependencies
+    cmds:
+      - uv sync --dev
+
+  install:force:
+    desc: Force reinstall all dependencies
+    cmds:
+      - uv sync --reinstall
+
+  add:
+    desc: Add new dependency (usage - task dev:add -- package-name)
+    cmds:
+      - uv add {{.CLI_ARGS}}
+
+  add:dev:
+    desc: Add development dependency (usage - task dev:add:dev -- package-name)
+    cmds:
+      - uv add --dev {{.CLI_ARGS}}
+
+  run:
+    desc: Run the FastAPI application
+    cmds:
+      - uv run python -m src.main
+
+  run:dev:
+    desc: Run application in development mode with auto-reload
+    cmds:
+      - uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+  run:prod:
+    desc: Run application in production mode
+    cmds:
+      - uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+  shell:
+    desc: Start Python REPL with project dependencies
+    cmds:
+      - uv run python
+
+  notebook:
+    desc: Start Jupyter notebook (if installed)
+    cmds:
+      - uv run jupyter notebook
+
+  deps:update:
+    desc: Update all dependencies
+    cmds:
+      - uv lock --upgrade
+
+  deps:check:
+    desc: Check for outdated dependencies
+    cmds:
+      - uv tree
+
+  env:info:
+    desc: Show environment information
+    cmds:
+      - echo "Python version:"
+      - python --version
+      - echo "UV version:"
+      - uv --version
+      - echo "Virtual environment:"
+      - which python
+      - echo "Installed packages:"
+      - uv pip list
+
+  workspace:init:
+    desc: Initialize workspace directories
+    cmds:
+      - mkdir -p workspace/{artifacts,locks,logging,secrets,tmp}
+      - echo "Workspace initialized"
+
+  secrets:edit:
+    desc: Edit local secrets (opens in $EDITOR)
+    cmds:
+      - ${EDITOR:-nano} workspace/secrets/local.env

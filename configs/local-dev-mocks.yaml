@@ -1,0 +1,74 @@
+# Configuration for local development using mocks
+environment: "local"
+debug: true
+
+# API Configuration
+api_title: "TRM Block Explorer API (Local - Mocks)"
+api_version: "2.0.0"
+api_description: "Local development with mock services"
+
+# Mock Infrastructure
+use_file_based_infrastructure: true
+workspace_base_path: "workspace"
+
+# Cache Configuration (Mock)
+cache_enabled: false
+redis_url: "redis://localhost:6379"
+cache_ttl_seconds: 60  # Short TTL for development
+
+# Database Configuration (Mock)
+dynamodb_endpoint: "http://localhost:8000"  # Local DynamoDB
+aws_region: "us-west-2"
+aws_access_key_id: "local"
+aws_secret_access_key: "local"
+
+# Table Names
+address_watchlist_table: "address-watchlist-local"
+suspicious_transactions_table: "suspicious-transactions-local"
+investigation_notes_table: "investigation-notes-local"
+
+# Infura Configuration (Mock values safe for development)
+infura_api_key: "mock_infura_key"
+infura_network: "mainnet"
+
+# Logging Configuration
+log_level: "DEBUG"
+log_format: "text"
+enable_cloudwatch_logging: false
+log_file_path: "workspace/logs/app.log"
+log_rotation_size: "10MB"
+log_rotation_count: 3
+
+# Secrets Configuration
+secrets_backend: "file"
+secrets_file_path: "workspace/secrets/local.json"
+secrets_encryption_key: null  # No encryption for local development
+
+# Tracing Configuration
+tracing_backend: "console"
+tracing_service_name: "trm-blockexplorer-local"
+tracing_sampling_rate: 1.0
+tracing_enabled: true
+
+# Health Check Configuration
+health_check_timeout: 10
+health_check_interval: 30
+
+# Rate Limiting (Relaxed for development)
+rate_limit_enabled: false
+rate_limit_requests_per_minute: 1000
+rate_limit_burst: 100
+
+# API Configuration
+api_cors_origins: ["http://localhost:3000", "http://localhost:8080"]
+api_cors_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+api_max_request_size: 1048576  # 1MB
+api_timeout: 30
+
+# Monitoring Configuration
+metrics_enabled: true
+metrics_port: 9090
+prometheus_enabled: false
+
+# Development Settings
+enable_cors: true

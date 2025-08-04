@@ -1,0 +1,235 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'TRM Block Explorer - Terraform Prerequisites StackSet for state management and deployment infrastructure'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, prod]
+    Description: Environment name for resource naming
+    Default: dev
+
+  ProjectName:
+    Type: String
+    Default: trm-blockexplorer
+    Description: Project name for resource naming
+
+Resources:
+  # KMS Key for Terraform State Encryption
+  TerraformStateKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub 'KMS key for ${ProjectName} Terraform state encryption'
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow S3 Service Access
+            Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+            Resource: '*'
+          - Sid: Allow DynamoDB Service Access
+            Effect: Allow
+            Principal:
+              Service: dynamodb.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+            Resource: '*'
+
+  # KMS Key Alias
+  TerraformStateKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/trm-terraform-state-key
+      TargetKeyId: !Ref TerraformStateKMSKey
+
+  # S3 Bucket for Terraform State
+  TerraformStateBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-terraform-state-${AWS::AccountId}-${AWS::Region}'
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref TerraformStateKMSKey
+            BucketKeyEnabled: true
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LoggingConfiguration:
+        DestinationBucketName: !Ref TerraformStateAccessLogsBucket
+        LogFilePrefix: access-logs/
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 90
+          - Id: DeleteIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+
+  # Access Logs Bucket for State Bucket
+  TerraformStateAccessLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-terraform-state-logs-${AWS::AccountId}-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAccessLogs
+            Status: Enabled
+            ExpirationInDays: 90
+
+
+  # DynamoDB Table for Terraform State Locking
+  TerraformLocksTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-terraform-locks'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !Ref TerraformStateKMSKey
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-terraform-locks'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Custom IAM Policy for Terraform State Access
+  TerraformStateAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: TerraformStateAccess
+      Description: 'Policy for Terraform to access state storage resources'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:ListBucket
+            Resource:
+              - !Sub 'arn:aws:s3:::${ProjectName}-terraform-state-*'
+              - !Sub 'arn:aws:s3:::${ProjectName}-terraform-state-*/*'
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:DeleteItem
+            Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProjectName}-terraform-locks'
+          - Effect: Allow
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*'
+            Condition:
+              StringEquals:
+                'kms:via': ['s3', 'dynamodb']
+
+  # Terraform Execution Role
+  TerraformExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: TerraformExecutionRole
+      Description: 'Role for Terraform to manage AWS infrastructure'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 
+                - ec2.amazonaws.com
+                - codebuild.amazonaws.com
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Sub '${ProjectName}-terraform-execution'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+        - !Ref TerraformStateAccessPolicy
+      Tags:
+        - Key: Name
+          Value: TerraformExecutionRole
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+
+Outputs:
+  TerraformStateBucketName:
+    Description: 'Name of the Terraform state S3 bucket'
+    Value: !Ref TerraformStateBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-StateBucket'
+
+  TerraformStateAccessLogsBucketName:
+    Description: 'Name of the Terraform state access logs S3 bucket'
+    Value: !Ref TerraformStateAccessLogsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-AccessLogsBucket'
+
+  TerraformLocksTableName:
+    Description: 'Name of the Terraform locks DynamoDB table'
+    Value: !Ref TerraformLocksTable
+    Export:
+      Name: !Sub '${AWS::StackName}-LocksTable'
+
+  TerraformExecutionRoleArn:
+    Description: 'ARN of the Terraform execution role'
+    Value: !GetAtt TerraformExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ExecutionRole'
+
+  TerraformStateKMSKeyId:
+    Description: 'ID of the KMS key for Terraform state encryption'
+    Value: !Ref TerraformStateKMSKey
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSKey'
+
+  TerraformStateKMSKeyAlias:
+    Description: 'Alias of the KMS key for Terraform state encryption'
+    Value: !Ref TerraformStateKMSKeyAlias
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSKeyAlias'

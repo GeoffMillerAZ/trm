@@ -1,0 +1,107 @@
+version: '3'
+
+tasks:
+  all:
+    desc: Run all tests
+    cmds:
+      - task: unit
+      - task: integration
+      - task: e2e
+
+  unit:
+    desc: Run unit tests
+    cmds:
+      - uv run pytest tests/unit/ -v
+
+  integration:
+    desc: Run integration tests
+    cmds:
+      - uv run pytest tests/integration/ -v
+
+  e2e:
+    desc: Run end-to-end tests
+    cmds:
+      - uv run pytest tests/e2e/ -v
+
+  watch:
+    desc: Run tests in watch mode
+    cmds:
+      - uv run pytest-watch tests/
+
+  coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - uv run pytest --cov=src --cov-report=html --cov-report=term --cov-report=xml
+
+  coverage:report:
+    desc: Generate and open coverage report
+    cmds:
+      - uv run pytest --cov=src --cov-report=html
+      - open htmlcov/index.html
+
+  domain:
+    desc: Run domain layer tests only
+    cmds:
+      - uv run pytest tests/unit/domain/ -v
+
+  application:
+    desc: Run application layer tests only
+    cmds:
+      - uv run pytest tests/unit/application/ -v
+
+  infrastructure:
+    desc: Run infrastructure layer tests only
+    cmds:
+      - uv run pytest tests/unit/infrastructure/ -v
+
+  presentation:
+    desc: Run presentation layer tests only
+    cmds:
+      - uv run pytest tests/unit/presentation/ -v
+
+  slow:
+    desc: Run slow tests (integration + e2e)
+    cmds:
+      - uv run pytest tests/integration/ tests/e2e/ -v --slow
+
+  quick:
+    desc: Run quick tests (unit only)
+    cmds:
+      - task: unit
+
+  parallel:
+    desc: Run tests in parallel
+    cmds:
+      - uv run pytest -n auto tests/
+
+  debug:
+    desc: Run tests with debugging
+    cmds:
+      - uv run pytest -v -s --pdb {{.CLI_ARGS}}
+
+  clean:
+    desc: Clean test artifacts
+    cmds:
+      - rm -rf .pytest_cache .coverage htmlcov coverage.xml
+      - find . -name "*.pyc" -delete
+      - find . -name "__pycache__" -type d -exec rm -rf {} +
+
+  database:setup:
+    desc: Setup test database
+    cmds:
+      - echo "Test database setup - implement as needed"
+
+  database:teardown:
+    desc: Teardown test database
+    cmds:
+      - echo "Test database teardown - implement as needed"
+
+  mock:server:start:
+    desc: Start mock server for testing
+    cmds:
+      - echo "Mock server start - implement when ready"
+
+  mock:server:stop:
+    desc: Stop mock server
+    cmds:
+      - echo "Mock server stop - implement when ready"

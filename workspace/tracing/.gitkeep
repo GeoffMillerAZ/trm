@@ -1,0 +1,2 @@
+# Distributed trace data
+# Structure: {trace_id}/{span_id}.json hierarchical format

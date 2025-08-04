@@ -1,0 +1,16 @@
+{
+  "action": "batch_check_balances",
+  "addresses": [
+    "0x742d35Cc6634C0532925a3b844Bc9e7595f89590",
+    "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+    "0x00000000219ab540356cbb839cbe05303d7705fa",
+    "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
+  ],
+  "options": {
+    "include_metadata": true,
+    "use_cache": true,
+    "timeout_seconds": 30
+  },
+  "request_id": "batch-test-001",
+  "timestamp": "2024-01-15T10:30:00Z"
+}

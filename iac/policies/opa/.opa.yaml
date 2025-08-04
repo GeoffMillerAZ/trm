@@ -1,0 +1,18 @@
+# OPA Configuration for Terraform Policy Enforcement
+
+# Bundle configuration
+bundle:
+  name: terraform-security-policies
+  
+# Decision logging
+decision_logs:
+  console: true
+  
+# Default query for Conftest
+namespace: terraform.security
+
+# Policy paths
+paths:
+  - rules/
+  - lib/
+  - data/

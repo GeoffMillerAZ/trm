@@ -1,0 +1,108 @@
+version: '3'
+
+includes:
+  build: ./taskfiles/Taskfile.build.yml
+  dev: ./taskfiles/Taskfile.dev.yml
+  test: ./taskfiles/Taskfile.test.yml
+  python: ./taskfiles/Taskfile.python.yml
+  examples: ./taskfiles/Taskfile.examples.yml
+  terraform: ./taskfiles/Taskfile.terraform.yml
+  opa: ./taskfiles/Taskfile.opa.yml
+  docker: ./taskfiles/docker.yml
+
+vars:
+  PROJECT_NAME: ddd-python-template
+  PYTHON_VERSION: 3.11
+
+tasks:
+  default:
+    desc: Show available tasks
+    silent: true
+    cmds:
+      - task --list
+
+  setup:
+    desc: Complete project setup
+    cmds:
+      - echo "Setting up development environment..."
+      - task: devbox:init
+      - echo "Setup complete! Run 'devbox shell' to enter the environment."
+
+  setup:quick:
+    desc: Quick setup - enter devbox shell  
+    cmds:
+      - devbox shell
+
+  devbox:init:
+    desc: Initialize devbox environment (runs uv sync and other setup)
+    cmds:
+      - task: dev:install
+      - task: dev:workspace:init
+      - task: hooks:install
+      - echo "Devbox environment initialized!"
+
+  devbox:shell:
+    desc: Enter devbox shell with initialization
+    cmds:
+      - task: devbox:init
+      - devbox shell
+
+  env:check:
+    desc: Validate development environment
+    cmds:
+      - echo "Checking development environment..."
+      - command -v devbox >/dev/null && echo "✓ devbox installed" || echo "✗ devbox not installed"
+      - command -v uv >/dev/null && echo "✓ uv installed" || echo "✗ uv not installed"
+      - command -v terraform >/dev/null && echo "✓ terraform installed" || echo "✗ terraform not installed"
+      - command -v task >/dev/null && echo "✓ task installed" || echo "✗ task not installed"
+      - command -v opa >/dev/null && echo "✓ opa installed" || echo "✗ opa not installed"
+      - command -v conftest >/dev/null && echo "✓ conftest installed" || echo "✗ conftest not installed"
+
+  env:info:
+    desc: Show environment information
+    cmds:
+      - task: dev:env:info
+
+  hooks:install:
+    desc: Install git hooks with lefthook
+    cmds:
+      - lefthook install
+
+  hooks:run:
+    desc: Run git hooks manually
+    cmds:
+      - lefthook run pre-commit
+
+  clean:
+    desc: Clean up build artifacts and caches
+    cmds:
+      - find . -type f -name "*.pyc" -delete
+      - find . -type d -name "__pycache__" -delete
+      - find . -type d -name "*.egg-info" -exec rm -rf {} +
+      - rm -rf .pytest_cache .coverage htmlcov .mypy_cache .ruff_cache
+      - rm -rf workspace/artifacts/* workspace/tmp/* workspace/logging/*
+      - echo "Cleanup complete!"
+
+  check:
+    desc: Run all quality checks
+    cmds:
+      - task: python:lint
+      - task: python:format:check
+      - task: python:type-check
+      - task: test:unit
+
+  fix:
+    desc: Auto-fix code issues
+    cmds:
+      - task: python:lint:fix
+      - task: python:format
+
+  version:
+    desc: Show current version
+    cmds:
+      - cat .versioning/current/VERSION
+
+  version:bump:
+    desc: Bump version (usage - task version:bump -- patch|minor|major)
+    cmds:
+      - echo "Version bumping not yet implemented - update .versioning/current/VERSION manually"

@@ -1,0 +1,115 @@
+# syntax=docker/dockerfile:1.4
+# Multi-stage build for better caching
+
+# Stage 1: Base with devbox packages (cached separately)
+# Using Ubuntu base and installing devbox to avoid profile issues
+FROM ubuntu:22.04 AS devbox-base
+
+# Set up environment
+ENV DEVBOX_USER=devbox
+ENV DEVBOX_VERSION=0.14.2
+
+# Install system dependencies and create devbox user
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
+        curl \
+        git \
+        jq \
+        sudo \
+        redis-tools \
+        ca-certificates \
+        xz-utils \
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* \
+    && useradd -ms /bin/bash ${DEVBOX_USER} \
+    && usermod -aG sudo ${DEVBOX_USER} \
+    && echo "${DEVBOX_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set up workspace
+WORKDIR /code
+RUN mkdir -p /code && chown ${DEVBOX_USER}:${DEVBOX_USER} /code
+RUN mkdir -p /code/workspace/{artifacts,cache,db,logging,secrets,tracing,config,locks,tmp,go} \
+    && chown -R ${DEVBOX_USER}:${DEVBOX_USER} /code/workspace
+
+# Copy devbox configs as root before switching user
+COPY --chown=${DEVBOX_USER}:${DEVBOX_USER} devbox.json /code/devbox.json
+COPY --chown=${DEVBOX_USER}:${DEVBOX_USER} devbox.lock /code/devbox.lock
+
+# Switch to devbox user for installations
+USER ${DEVBOX_USER}:${DEVBOX_USER}
+WORKDIR /home/${DEVBOX_USER}
+
+# Install Nix in single-user mode
+RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+
+# Install Devbox
+RUN . ~/.nix-profile/etc/profile.d/nix.sh && \
+    curl -fsSL https://get.jetify.com/devbox | bash -s -- -f
+
+# Add paths
+ENV PATH="/home/${DEVBOX_USER}/.nix-profile/bin:/home/${DEVBOX_USER}/.local/bin:${PATH}"
+
+# Switch to code directory and install devbox packages
+WORKDIR /code
+
+# Install devbox packages with cache at alternative location
+# Mount cache to /tmp to avoid breaking symlinks in /nix
+RUN --mount=type=cache,target=/tmp/nix-store-cache,sharing=locked \
+    # Copy cached store to actual location if valid
+    if [ -d "/tmp/nix-store-cache" ] && [ -n "$(ls -A /tmp/nix-store-cache 2>/dev/null)" ]; then \
+        echo "Using cached Nix store..." && \
+        mkdir -p /nix/store && \
+        cp -r /tmp/nix-store-cache/* /nix/store/ 2>/dev/null || true; \
+    fi && \
+    # Source profile and install
+    . ~/.nix-profile/etc/profile.d/nix.sh && \
+    devbox version && \
+    devbox install && \
+    # Update cache with new packages
+    echo "Updating Nix store cache..." && \
+    mkdir -p /tmp/nix-store-cache && \
+    cp -r /nix/store/* /tmp/nix-store-cache/ 2>/dev/null || true
+
+# Stage 2: Python dependencies
+FROM devbox-base AS python-deps
+
+# Copy Python dependency files
+COPY --chown=${DEVBOX_USER}:${DEVBOX_USER} pyproject.toml pyproject.toml
+COPY --chown=${DEVBOX_USER}:${DEVBOX_USER} uv.lock uv.lock
+
+# Install Python dependencies
+RUN --mount=type=cache,target=/home/${DEVBOX_USER}/.cache/uv,uid=1000,gid=1000 \
+    --mount=type=cache,target=/tmp/nix-store-cache,sharing=locked \
+    # Copy cached store if needed
+    if [ -d "/tmp/nix-store-cache" ] && [ -n "$(ls -A /tmp/nix-store-cache 2>/dev/null)" ]; then \
+        cp -r /tmp/nix-store-cache/* /nix/store/ 2>/dev/null || true; \
+    fi && \
+    devbox run -- uv sync --frozen --no-install-project
+
+# Stage 3: Final application
+FROM python-deps AS final
+
+# Copy application code
+COPY --chown=${DEVBOX_USER}:${DEVBOX_USER} . .
+
+# Install project
+RUN --mount=type=cache,target=/home/${DEVBOX_USER}/.cache/uv,uid=1000,gid=1000 \
+    --mount=type=cache,target=/tmp/nix-store-cache,sharing=locked \
+    # Copy cached store if needed
+    if [ -d "/tmp/nix-store-cache" ] && [ -n "$(ls -A /tmp/nix-store-cache 2>/dev/null)" ]; then \
+        cp -r /tmp/nix-store-cache/* /nix/store/ 2>/dev/null || true; \
+    fi && \
+    devbox run -- uv sync --frozen
+
+# Configure git
+RUN git config --global --add safe.directory /code
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+    CMD devbox run -- curl -f http://localhost:8000/api/v1/health || exit 1
+
+# Entrypoint
+ENTRYPOINT ["devbox", "run", "--"]
+CMD ["uv", "run", "python", "-m", "src.main"]

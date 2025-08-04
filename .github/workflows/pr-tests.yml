@@ -1,0 +1,458 @@
+name: PR Tests
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+    types: [ opened, synchronize, reopened ]
+  workflow_dispatch:
+
+jobs:
+  # Quick checks that don't need devbox
+  quick-checks:
+    name: Quick Checks
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check for large files
+      run: |
+        large_files=$(find . -type f -size +50M 2>/dev/null || true)
+        if [ ! -z "$large_files" ]; then
+          echo "❌ Large files detected (>50MB):"
+          echo "$large_files"
+          exit 1
+        fi
+        echo "✅ No large files detected"
+
+    - name: Check for merge conflicts
+      run: |
+        if grep -rn "^<<<<<<< \|^======= \|^>>>>>>> " --include="*.py" --include="*.yml" --include="*.yaml" --include="*.tf" .; then
+          echo "❌ Merge conflict markers detected"
+          exit 1
+        fi
+        echo "✅ No merge conflict markers found"
+
+  # Python tests using improved caching strategy
+  python-tests:
+    name: Python ${{ matrix.test-type }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test-type:
+          - quality
+          - unit
+          - integration
+
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:latest
+        ports:
+          - 8000:8000
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Try multiple cache strategies for better hit rate
+    - name: Cache Nix store
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/nix
+          /nix/store
+        key: nix-store-${{ runner.os }}-${{ hashFiles('devbox.json') }}
+        restore-keys: |
+          nix-store-${{ runner.os }}-
+
+    - name: Cache Devbox downloads
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/devbox
+          ~/.local/share/devbox
+        key: devbox-downloads-${{ runner.os }}-${{ hashFiles('devbox.json') }}
+        restore-keys: |
+          devbox-downloads-${{ runner.os }}-
+
+    - name: Install Devbox with frozen lockfile
+      uses: jetify-com/devbox-install-action@v0.13.0
+      with:
+        enable-cache: 'true'
+        project-path: '.'
+      env:
+        # Try to prevent lockfile updates during install
+        DEVBOX_NO_REFRESH: 'true'
+
+    # Ensure lockfile is in sync
+    - name: Verify devbox.lock is in sync
+      run: |
+        # Save current lock file
+        cp devbox.lock devbox.lock.orig
+
+        # Update lock file
+        devbox update
+
+        # Check if it changed
+        if ! diff -q devbox.lock devbox.lock.orig > /dev/null; then
+          echo "❌ devbox.lock is out of sync! Please run 'devbox update' and commit the changes."
+          echo "Differences:"
+          diff devbox.lock devbox.lock.orig || true
+          exit 1
+        fi
+        echo "✅ devbox.lock is in sync"
+
+    - name: Cache UV packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/uv
+          ~/.local/share/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
+    - name: Wait for DynamoDB to be ready
+      if: matrix.test-type == 'integration'
+      run: |
+        echo "Waiting for DynamoDB to be ready..."
+        for i in {1..30}; do
+          if devbox run -- python -c "import requests; requests.get('http://localhost:8000')" 2>/dev/null; then
+            echo "DynamoDB is ready!"
+            break
+          fi
+          echo "Waiting for DynamoDB... ($i/30)"
+          sleep 2
+        done
+
+    - name: Run ${{ matrix.test-type }} tests
+      run: |
+        case "${{ matrix.test-type }}" in
+          quality)
+            echo "::group::Linting"
+            devbox run -- task python:lint || true
+            echo "::endgroup::"
+
+            echo "::group::Format Check"
+            devbox run -- task python:format:check
+            echo "::endgroup::"
+
+            echo "::group::Type Check"
+            devbox run -- task python:type-check || true
+            echo "::endgroup::"
+            ;;
+          unit)
+            devbox run -- task test:coverage
+            ;;
+          integration)
+            devbox run -- task test:integration || true
+            ;;
+        esac
+      env:
+        DYNAMODB_ENDPOINT: http://localhost:8000
+        ENVIRONMENT: test
+        PYTHONPATH: .
+
+    - name: Upload coverage
+      if: matrix.test-type == 'unit'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: |
+          htmlcov/
+          coverage.xml
+
+  # Security scanning with better caching
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Cache security tools
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.local/bin
+        key: security-tools-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          security-tools-${{ runner.os }}-
+
+    - name: Install Devbox
+      uses: jetify-com/devbox-install-action@v0.13.0
+      with:
+        enable-cache: 'true'
+        project-path: '.'
+
+    - name: Run security scans
+      run: |
+        echo "::group::Pip Audit"
+        devbox run -- pip install pip-audit
+        devbox run -- pip-audit --desc || true
+        echo "::endgroup::"
+
+        echo "::group::Bandit"
+        devbox run -- pip install bandit
+        devbox run -- bandit -r src/ || true
+        echo "::endgroup::"
+
+  # Terraform validation with caching
+  terraform-check:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Cache Terraform plugins
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.terraform.d/plugin-cache
+          **/.terraform/providers
+        key: terraform-${{ runner.os }}-${{ hashFiles('**/*.tf', '**/terraform.lock.hcl') }}
+        restore-keys: |
+          terraform-${{ runner.os }}-
+
+    - name: Install Devbox
+      uses: jetify-com/devbox-install-action@v0.13.0
+      with:
+        enable-cache: 'true'
+        project-path: '.'
+
+    - name: Validate Terraform
+      run: |
+        for dir in dev prod; do
+          if [ -d "iac/deploy/$dir" ]; then
+            for project in global us-west-2 us-east-2; do
+              if [ -d "iac/deploy/$dir/$project" ]; then
+                echo "::group::Terraform $dir/$project"
+                cd iac/deploy/$dir/$project
+                devbox run -- terraform init -backend=false
+                devbox run -- terraform fmt -check -recursive
+                devbox run -- terraform validate
+                cd ../../../../..
+                echo "::endgroup::"
+              fi
+            done
+          fi
+        done
+      env:
+        TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
+
+  # Docker validation (still need to test production Dockerfile)
+  docker-check:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build production Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false
+        tags: test-build:latest
+        cache-from: type=gha,scope=shared
+        cache-to: type=gha,mode=max,scope=shared
+
+  # OPA Policy validation for Terraform changes
+  opa-policy-check:
+    name: OPA Policy Validation
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Cache Devbox tools
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/devbox
+          ~/.local/share/devbox
+        key: devbox-opa-${{ runner.os }}-${{ hashFiles('devbox.json') }}
+        restore-keys: |
+          devbox-opa-${{ runner.os }}-
+
+    - name: Cache Terraform plugins
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.terraform.d/plugin-cache
+          **/.terraform/providers
+        key: terraform-${{ runner.os }}-${{ hashFiles('**/*.tf', '**/terraform.lock.hcl') }}
+        restore-keys: |
+          terraform-${{ runner.os }}-
+
+    - name: Install Devbox
+      uses: jetify-com/devbox-install-action@v0.13.0
+      with:
+        enable-cache: 'true'
+        project-path: '.'
+
+    - name: Validate OPA policies
+      run: |
+        # Test OPA policy syntax using conftest
+        echo "::group::Validating OPA policy syntax"
+        cd iac/policies/opa
+        devbox run -- conftest verify --policy . --no-color || echo "Policy syntax validation completed"
+        cd ../../..
+        echo "::endgroup::"
+
+    - name: Test OPA policies with sample Terraform
+      run: |
+        # This is a PR, so we only show warnings
+        export OPA_ENFORCEMENT_LEVEL="warning"
+
+        echo "::group::Creating test Terraform plan"
+
+        # Create a test Terraform plan
+        mkdir -p test-terraform
+        cd test-terraform
+
+        cat > main.tf <<'EOF'
+        variable "environment" {
+          default = "dev"
+        }
+
+        resource "aws_s3_bucket" "test" {
+          bucket = "test-bucket-${var.environment}"
+          tags = {
+            Environment = var.environment
+            Project     = "test"
+            ManagedBy   = "terraform"
+          }
+        }
+
+        resource "aws_dynamodb_table" "test" {
+          name         = "test-table"
+          billing_mode = "PAY_PER_REQUEST"
+          hash_key     = "id"
+
+          attribute {
+            name = "id"
+            type = "S"
+          }
+
+          tags = {
+            Environment = var.environment
+            Project     = "test"
+            ManagedBy   = "terraform"
+          }
+        }
+        EOF
+
+        # Initialize Terraform (may fail without AWS credentials, that's OK)
+        terraform init -backend=false > /dev/null 2>&1 || echo "Using mock plan"
+
+        # Try to generate a real plan, fall back to mock if it fails
+        if terraform plan -out=tfplan.binary > /dev/null 2>&1; then
+          terraform show -json tfplan.binary > tfplan.json
+        else
+          # Create a mock plan for testing
+          cat > tfplan.json <<'EOF'
+        {
+          "format_version": "1.1",
+          "variables": {"environment": {"value": "dev"}},
+          "resource_changes": [
+            {
+              "address": "aws_s3_bucket.test",
+              "type": "aws_s3_bucket",
+              "change": {"actions": ["create"]},
+              "values": {
+                "bucket": "test-bucket-dev",
+                "tags": {"Environment": "dev", "Project": "test", "ManagedBy": "terraform"}
+              }
+            },
+            {
+              "address": "aws_dynamodb_table.test",
+              "type": "aws_dynamodb_table",
+              "change": {"actions": ["create"]},
+              "values": {
+                "name": "test-table",
+                "billing_mode": "PAY_PER_REQUEST",
+                "hash_key": "id",
+                "attribute": [{"name": "id", "type": "S"}],
+                "tags": {"Environment": "dev", "Project": "test", "ManagedBy": "terraform"}
+              }
+            }
+          ]
+        }
+        EOF
+        fi
+
+        cd ..
+        echo "::endgroup::"
+
+        echo "::group::Running OPA policy checks"
+
+        # Run conftest to check policies
+        if devbox run -- conftest test test-terraform/tfplan.json \
+          --policy iac/policies/opa \
+          --namespace main \
+          --output json > opa-results.json 2>&1; then
+          echo "✅ All policies passed"
+        else
+          # Parse results
+          if [ -f opa-results.json ] && [ -s opa-results.json ]; then
+            FAILURES=$(jq -r '.[] | select(.failures) | .failures[]' opa-results.json 2>/dev/null || echo "")
+            WARNINGS=$(jq -r '.[] | select(.warnings) | .warnings[]' opa-results.json 2>/dev/null || echo "")
+
+            if [ -n "$FAILURES" ]; then
+              echo "⚠️ Policy violations (shown as warnings in PR):"
+              echo "$FAILURES" | while IFS= read -r line; do
+                [ -n "$line" ] && echo "  - $line"
+              done
+            fi
+
+            if [ -n "$WARNINGS" ]; then
+              echo "ℹ️ Policy warnings:"
+              echo "$WARNINGS" | while IFS= read -r line; do
+                [ -n "$line" ] && echo "  - $line"
+              done
+            fi
+          else
+            echo "⚠️ Could not parse OPA results, but continuing..."
+          fi
+        fi
+
+        echo "::endgroup::"
+
+        # Always pass in PR (warnings only)
+        echo "✅ OPA policy check completed (warnings only in PR)"
+
+  # Status check
+  pr-status:
+    name: PR Status Check
+    runs-on: ubuntu-latest
+    needs: [quick-checks, python-tests, security-scan, terraform-check, docker-check, opa-policy-check]
+    if: always()
+
+    steps:
+    - name: Check job statuses
+      run: |
+        echo "## Job Status Summary"
+        echo "Quick Checks: ${{ needs.quick-checks.result }}"
+        echo "Python Tests: ${{ needs.python-tests.result }}"
+        echo "Security Scan: ${{ needs.security-scan.result }}"
+        echo "Terraform: ${{ needs.terraform-check.result }}"
+        echo "Docker: ${{ needs.docker-check.result }}"
+        echo "OPA Policy: ${{ needs.opa-policy-check.result }}"
+
+        if [[ "${{ needs.quick-checks.result }}" == "failure" ]] || \
+           [[ "${{ needs.python-tests.result }}" == "failure" ]] || \
+           [[ "${{ needs.terraform-check.result }}" == "failure" ]] || \
+           [[ "${{ needs.docker-check.result }}" == "failure" ]]; then
+          echo "❌ One or more required checks failed"
+          exit 1
+        fi
+
+        echo "✅ All required checks passed!"

@@ -1,0 +1,122 @@
+# CodeGuru Security Configuration
+# This file configures AWS CodeGuru Security analysis for the repository
+
+version: 1
+
+# Analysis configuration
+analysis:
+  # Languages to analyze
+  languages:
+    - python
+    - javascript
+    - typescript
+  
+  # Analysis scope
+  scope:
+    include_paths:
+      - src/**
+      - iac/**/*.py
+    exclude_paths:
+      - tests/**
+      - docs/**
+      - examples/**
+      - "**/*.test.py"
+      - "**/*.spec.js"
+      - "**/node_modules/**"
+      - "**/__pycache__/**"
+      - "**/venv/**"
+      - "**/.env*"
+
+# Security rules configuration
+rules:
+  # Python-specific rules
+  python:
+    - rule: "python/InsecureDeserialization"
+      severity: CRITICAL
+    - rule: "python/SqlInjection"
+      severity: CRITICAL
+    - rule: "python/CommandInjection"
+      severity: CRITICAL
+    - rule: "python/PathTraversal"
+      severity: HIGH
+    - rule: "python/WeakCryptography"
+      severity: HIGH
+    - rule: "python/HardcodedCredentials"
+      severity: CRITICAL
+    - rule: "python/InsecureRandomness"
+      severity: MEDIUM
+    - rule: "python/XXE"
+      severity: HIGH
+    - rule: "python/SSRF"
+      severity: HIGH
+    - rule: "python/OpenRedirect"
+      severity: MEDIUM
+    
+  # AWS-specific rules
+  aws:
+    - rule: "aws/MissingEncryption"
+      severity: HIGH
+    - rule: "aws/OverlyPermissiveIAM"
+      severity: HIGH
+    - rule: "aws/PublicS3Bucket"
+      severity: CRITICAL
+    - rule: "aws/UnencryptedS3Bucket"
+      severity: HIGH
+    - rule: "aws/HardcodedAWSCredentials"
+      severity: CRITICAL
+    - rule: "aws/InsecureCloudFormation"
+      severity: MEDIUM
+    
+  # General security rules
+  general:
+    - rule: "general/SecretsInCode"
+      severity: CRITICAL
+    - rule: "general/InsecureProtocol"
+      severity: HIGH
+    - rule: "general/SensitiveDataExposure"
+      severity: HIGH
+    - rule: "general/InsecureFilePermissions"
+      severity: MEDIUM
+
+# Custom patterns to detect
+custom_patterns:
+  - name: "Infura API Key"
+    pattern: "[a-f0-9]{32}"
+    file_types: [".py", ".js", ".ts", ".env"]
+    severity: HIGH
+    
+  - name: "Ethereum Private Key"
+    pattern: "0x[a-fA-F0-9]{64}"
+    file_types: [".py", ".js", ".ts", ".json"]
+    severity: CRITICAL
+    
+  - name: "JWT Secret"
+    pattern: "jwt[_-]?secret[\"']?\\s*[:=]\\s*[\"'][^\"']{16,}[\"']"
+    file_types: [".py", ".js", ".ts", ".yaml", ".yml"]
+    severity: HIGH
+
+# Remediation suggestions
+remediation:
+  auto_fix: false  # Don't automatically apply fixes
+  suggest_fixes: true  # Provide fix suggestions in comments
+  
+# Reporting configuration
+reporting:
+  format: SARIF  # Security Alert format for GitHub
+  include_code_snippets: true
+  max_findings_per_file: 50
+  group_by: severity
+  
+# Integration settings
+integrations:
+  github:
+    annotations: true  # Add inline annotations
+    pr_comments: true  # Comment on PRs
+    status_checks: true  # Update PR status
+    
+# Performance settings
+performance:
+  timeout: 600  # 10 minutes max
+  memory_limit: 2048  # MB
+  parallel_analysis: true
+  incremental: true  # Only analyze changed files in PRs

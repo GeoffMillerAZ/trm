@@ -1,0 +1,57 @@
+{
+  "name": "Devbox Remote Container",
+  "build": {
+    "dockerfile": "./Dockerfile",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "jetpack-io.devbox",
+        "ms-python.python",
+        "ms-python.mypy-type-checker",
+        "charliermarsh.ruff",
+        "ms-python.debugpy",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "yzhang.markdown-all-in-one",
+        "ms-vscode.vscode-json"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/home/devbox/.devbox/nix/profile/default/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.mypyEnabled": true,
+        "python.formatting.provider": "none",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": true,
+            "source.fixAll": true
+          },
+          "editor.formatOnSave": true
+        },
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/*.pyc": true,
+          ".pytest_cache": true,
+          ".mypy_cache": true,
+          ".ruff_cache": true,
+          "workspace/**": true
+        }
+      }
+    }
+  },
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "FastAPI",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "devbox shell -- uv sync",
+  "postStartCommand": "echo 'Devbox container ready!'",
+  "remoteUser": "devbox",
+  "mounts": [
+    "source=${localWorkspaceFolder}/workspace,target=/workspaces/${localWorkspaceFolderBasename}/workspace,type=bind,consistency=cached"
+  ]
+}

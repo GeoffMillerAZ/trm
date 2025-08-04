@@ -1,0 +1,79 @@
+# Configuration for testing environment using real services
+environment: "testing"
+debug: false
+
+# API Configuration
+api_title: "TRM Block Explorer API (Test)"
+api_version: "2.0.0"
+api_description: "Testing environment with AWS services"
+
+# Infrastructure
+use_file_based_infrastructure: false
+
+# Cache Configuration (Test Redis/ElastiCache)
+cache_enabled: true
+redis_url: "${REDIS_URL}"
+redis_password: "${REDIS_PASSWORD}"
+cache_ttl_seconds: 300
+
+# Database Configuration (Test DynamoDB)
+dynamodb_endpoint: null  # Use AWS DynamoDB
+aws_region: "${AWS_REGION}"
+aws_access_key_id: "${AWS_ACCESS_KEY_ID}"
+aws_secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+aws_session_token: "${AWS_SESSION_TOKEN}"
+
+# Table Names (Test environment)
+address_watchlist_table: "address-watchlist-test"
+suspicious_transactions_table: "suspicious-transactions-test"
+investigation_notes_table: "investigation-notes-test"
+
+# Infura Configuration (Test API key)
+infura_api_key: "${INFURA_API_KEY}"
+infura_network: "goerli"  # Use testnet for testing
+infura_project_secret: "${INFURA_PROJECT_SECRET}"
+
+# Logging Configuration
+log_level: "INFO"
+log_format: "json"
+enable_cloudwatch_logging: true
+cloudwatch_log_group: "trm-blockexplorer-test"
+cloudwatch_log_stream: "api-test"
+log_rotation_size: "100MB"
+log_rotation_count: 10
+
+# Secrets Configuration (AWS)
+secrets_backend: "aws"
+secrets_prefix: "trm-blockexplorer-test/"
+parameters_prefix: "/trm-blockexplorer-test/"
+
+# Tracing Configuration
+tracing_backend: "xray"
+tracing_service_name: "trm-blockexplorer-test"
+tracing_sampling_rate: 0.1  # 10% sampling for testing
+enable_xray_local_mode: false
+tracing_enabled: true
+
+# Health Check Configuration
+health_check_timeout: 30
+health_check_interval: 60
+
+# Rate Limiting (Production-like limits)
+rate_limit_enabled: true
+rate_limit_requests_per_minute: 100
+rate_limit_burst: 20
+
+# API Configuration
+api_cors_origins: ["https://test.example.com"]
+api_cors_methods: ["GET", "POST", "PUT", "DELETE"]
+api_max_request_size: 1048576  # 1MB
+api_timeout: 30
+
+# Monitoring Configuration
+metrics_enabled: true
+metrics_port: 9090
+prometheus_enabled: true
+
+# Development Settings
+enable_cors: true
+cors_origins: ["https://test.example.com"]

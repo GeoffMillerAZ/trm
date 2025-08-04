@@ -1,0 +1,40 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      run: uv run ruff check --fix
+      glob: "*.py"
+    format:
+      run: uv run ruff format
+      glob: "*.py"
+    type-check:
+      run: uv run mypy src/
+      glob: "src/**/*.py"
+
+pre-push:
+  parallel: true
+  commands:
+    test:
+      run: uv run pytest
+    lint-check:
+      run: uv run ruff check
+      glob: "*.py"
+    format-check:
+      run: uv run ruff format --check
+      glob: "*.py"
+    type-check:
+      run: uv run mypy src/
+      glob: "src/**/*.py"
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: |
+        if ! grep -qE "^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .+" "$1"; then
+          echo "Commit message must follow conventional commit format:"
+          echo "type(scope): description"
+          echo ""
+          echo "Types: feat, fix, docs, style, refactor, test, chore"
+          echo "Example: feat(user): add user creation endpoint"
+          exit 1
+        fi

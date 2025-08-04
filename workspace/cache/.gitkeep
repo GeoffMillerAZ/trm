@@ -1,0 +1,2 @@
+# File-based cache entries
+# Format: {key}.json with metadata (value, ttl, created_at)

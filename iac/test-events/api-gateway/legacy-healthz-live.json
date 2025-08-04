@@ -1,0 +1,37 @@
+{
+  "resource": "/healthz/live",
+  "path": "/healthz/live",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "text/plain",
+    "Host": "api.example.com",
+    "User-Agent": "kube-probe/1.20",
+    "X-Forwarded-For": "10.0.1.1",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": ["text/plain"]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": {
+    "stage": "dev"
+  },
+  "requestContext": {
+    "resourcePath": "/healthz/live",
+    "httpMethod": "GET",
+    "path": "/healthz/live",
+    "stage": "dev",
+    "requestId": "test-liveness-probe-001",
+    "identity": {
+      "sourceIp": "10.0.1.1",
+      "userAgent": "kube-probe/1.20"
+    },
+    "domainName": "api.example.com",
+    "apiId": "test-api-id"
+  },
+  "body": null,
+  "isBase64Encoded": false
+}

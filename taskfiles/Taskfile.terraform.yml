@@ -1,0 +1,223 @@
+version: '3'
+
+vars:
+  TERRAFORM_VERSION: '>=1.5'
+
+tasks:
+  validate:
+    desc: Validate all Terraform configurations
+    cmds:
+      - task: validate:modules
+      - task: validate:projects
+      - task: validate:deployments
+    silent: true
+
+  validate:modules:
+    desc: Validate all Terraform modules
+    cmds:
+      - |
+        echo "🔍 Validating Terraform modules..."
+        failed=0
+        modules=$(find iac/modules -type d -name "*" -mindepth 1 -maxdepth 1 | sort)
+        for module in $modules; do
+          echo -n "  Validating $module... "
+          if cd "$module" && terraform init -backend=false -upgrade=false >/dev/null 2>&1 && terraform validate >/dev/null 2>&1; then
+            echo "✅"
+          else
+            echo "❌"
+            echo "    Running detailed validation:"
+            cd "$module" && terraform init -backend=false -upgrade=false 2>&1 | sed 's/^/    /'
+            terraform validate 2>&1 | sed 's/^/    /'
+            failed=$((failed + 1))
+          fi
+          cd - >/dev/null
+        done
+        if [ $failed -gt 0 ]; then
+          echo "❌ $failed module(s) failed validation"
+          exit 1
+        else
+          echo "✅ All modules validated successfully"
+        fi
+    silent: true
+
+  validate:projects:
+    desc: Validate all Terraform projects
+    cmds:
+      - |
+        echo "🔍 Validating Terraform projects..."
+        failed=0
+        projects=$(find iac/projects -type d -name "*" -mindepth 1 -maxdepth 1 | sort)
+        for project in $projects; do
+          # Check if project has .tf files
+          if find "$project" -name "*.tf" -type f | grep -q .; then
+            echo -n "  Validating $project... "
+            if cd "$project" && terraform init -backend=false -upgrade=false >/dev/null 2>&1 && terraform validate >/dev/null 2>&1; then
+              echo "✅"
+            else
+              echo "❌"
+              echo "    Running detailed validation:"
+              cd "$project" && terraform init -backend=false -upgrade=false 2>&1 | sed 's/^/    /'
+              terraform validate 2>&1 | sed 's/^/    /'
+              failed=$((failed + 1))
+            fi
+            cd - >/dev/null
+          fi
+        done
+        if [ $failed -gt 0 ]; then
+          echo "❌ $failed project(s) failed validation"
+          exit 1
+        else
+          echo "✅ All projects validated successfully"
+        fi
+    silent: true
+
+  validate:deployments:
+    desc: Validate all Terraform deployment configurations
+    cmds:
+      - |
+        echo "🔍 Validating Terraform deployments..."
+        failed=0
+        # Find all deployment directories
+        deployments=""
+        for dir in iac/deploy/account-bootstrap iac/deploy/dev/* iac/deploy/prod/*; do
+          if [ -d "$dir" ] && [ -f "$dir/main.tf" ]; then
+            deployments="$deployments $dir"
+          fi
+        done
+        for deployment in $deployments; do
+          # Check if deployment has .tf files
+          if find "$deployment" -name "*.tf" -type f | grep -q .; then
+            echo -n "  Validating $deployment... "
+            if cd "$deployment" && terraform init -backend=false -upgrade=false >/dev/null 2>&1 && terraform validate >/dev/null 2>&1; then
+              echo "✅"
+            else
+              echo "❌"
+              echo "    Running detailed validation:"
+              cd "$deployment" && terraform init -backend=false -upgrade=false 2>&1 | sed 's/^/    /'
+              terraform validate 2>&1 | sed 's/^/    /'
+              failed=$((failed + 1))
+            fi
+            cd - >/dev/null
+          fi
+        done
+        if [ $failed -gt 0 ]; then
+          echo "❌ $failed deployment(s) failed validation"
+          exit 1
+        else
+          echo "✅ All deployments validated successfully"
+        fi
+    silent: true
+
+  validate:single:
+    desc: Validate a single Terraform directory
+    summary: |
+      Validate a specific Terraform configuration directory.
+
+      Usage:
+        task terraform:validate:single DIR=iac/modules/lambda
+    vars:
+      DIR: '{{default "." .DIR}}'
+    cmds:
+      - |
+        if [ ! -d "{{.DIR}}" ]; then
+          echo "❌ Directory {{.DIR}} does not exist"
+          exit 1
+        fi
+        echo "🔍 Validating {{.DIR}}..."
+        cd "{{.DIR}}"
+        terraform init -backend=false -upgrade=false
+        terraform validate
+    preconditions:
+      - sh: '[ -n "{{.DIR}}" ]'
+        msg: "DIR variable is required. Usage: task terraform:validate:single DIR=path/to/terraform"
+
+  fmt:
+    desc: Format all Terraform files
+    cmds:
+      - |
+        echo "🎨 Formatting Terraform files..."
+        terraform fmt -recursive iac/
+        echo "✅ Terraform files formatted"
+    silent: true
+
+  fmt:check:
+    desc: Check Terraform formatting (CI mode)
+    cmds:
+      - |
+        echo "🔍 Checking Terraform formatting..."
+        if terraform fmt -check -recursive iac/; then
+          echo "✅ All Terraform files are properly formatted"
+        else
+          echo "❌ Some Terraform files need formatting. Run 'task terraform:fmt' to fix."
+          exit 1
+        fi
+    silent: true
+
+  docs:
+    desc: Generate documentation for Terraform modules
+    cmds:
+      - |
+        echo "📚 Generating Terraform documentation..."
+        if command -v terraform-docs >/dev/null 2>&1; then
+          for module in iac/modules/*; do
+            if [ -d "$module" ] && [ -f "$module/variables.tf" ]; then
+              echo "  Generating docs for $module..."
+              terraform-docs markdown "$module" > "$module/README.md"
+            fi
+          done
+          echo "✅ Documentation generated"
+        else
+          echo "⚠️  terraform-docs is not installed."
+          echo "    Run 'devbox shell' to access all required tools."
+        fi
+    silent: true
+
+  lint:
+    desc: Lint Terraform files with tflint
+    cmds:
+      - |
+        echo "🔍 Linting Terraform files..."
+        if command -v tflint >/dev/null 2>&1; then
+          failed=0
+          for dir in iac/modules/* iac/projects/* iac/deploy/*/*; do
+            if [ -d "$dir" ] && find "$dir" -name "*.tf" -type f | grep -q .; then
+              echo -n "  Linting $dir... "
+              if cd "$dir" && tflint --init >/dev/null 2>&1 && tflint >/dev/null 2>&1; then
+                echo "✅"
+              else
+                echo "❌"
+                cd "$dir" && tflint 2>&1 | sed 's/^/    /'
+                failed=$((failed + 1))
+              fi
+              cd - >/dev/null
+            fi
+          done
+          if [ $failed -gt 0 ]; then
+            echo "❌ $failed directory(ies) failed linting"
+            exit 1
+          else
+            echo "✅ All files passed linting"
+          fi
+        else
+          echo "⚠️  tflint is not installed."
+          echo "    Run 'devbox shell' to access all required tools."
+        fi
+    silent: true
+
+  security:
+    desc: Run security scan on Terraform files
+    cmds:
+      - |
+        echo "🔒 Running security scan on Terraform files..."
+        if command -v tfsec >/dev/null 2>&1; then
+          tfsec iac/ --format=default --soft-fail
+        elif command -v checkov >/dev/null 2>&1; then
+          checkov -d iac/ --framework terraform
+        elif command -v uv >/dev/null 2>&1; then
+          uv run checkov -d iac/ --framework terraform
+        else
+          echo "⚠️  No security scanner found."
+          echo "    Run 'devbox shell' to access all required tools."
+          echo "    Both tfsec and checkov are available in the devbox environment."
+        fi
+    silent: true

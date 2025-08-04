@@ -1,0 +1,47 @@
+# Global ownership
+* @maintainers
+
+# Architecture and core domain
+/src/domain/ @domain-experts @senior-developers
+/docs/adr/ @architects @senior-developers
+
+# Infrastructure and deployment
+/src/infrastructure/ @backend-engineers @devops
+/docker-compose.yml @devops
+/Dockerfile @devops
+/.devcontainer/ @devops
+
+# API and presentation layer
+/src/presentation/ @api-developers @backend-engineers
+
+# Testing strategy
+/tests/ @qa-engineers @backend-engineers
+/tests/e2e/ @qa-engineers
+
+# Build and CI/CD
+/taskfiles/ @devops @senior-developers
+/Taskfile.yml @devops @senior-developers
+/.github/ @devops
+/lefthook.yml @senior-developers
+
+# Documentation
+/docs/ @tech-writers @senior-developers
+/CONTRIBUTING.md @maintainers
+/STYLE_GUIDE.md @maintainers
+/CLAUDE.md @maintainers
+
+# Configuration
+/pyproject.toml @senior-developers @maintainers
+/devbox.json @devops @senior-developers
+/.editorconfig @senior-developers
+
+# Versioning and releases
+/.versioning/ @maintainers @release-managers
+
+# Specifications and agent workflows
+/specs/ @product-owners @architects
+/.agents/ @ai-engineers @senior-developers
+
+# Development environment
+/workspace/ @developers
+/.dev.d/ @devops @senior-developers

@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # API with Redis only (using mocks for blockchain and database)
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Use testing environment with Redis
+      - ENVIRONMENT=testing
+      - USE_MOCK_BLOCKCHAIN=true
+      - USE_FILE_BASED_INFRASTRUCTURE=false
+      
+      # Redis configuration
+      - REDIS_URL=redis://redis:6379
+      - CACHE_ENABLED=true
+      - CACHE_TTL_SECONDS=300
+      
+      # Logging configuration
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=json
+      - ENABLE_CLOUDWATCH_LOGGING=false
+      
+      # Tracing configuration
+      - TRACING_BACKEND=console
+      - TRACING_SERVICE_NAME=trm-blockexplorer-redis
+      
+      # Secrets backend
+      - SECRETS_BACKEND=environment
+      
+      # API Configuration
+      - API_TITLE=TRM Block Explorer API (Redis Mode)
+      - DEBUG=true
+      
+      # CORS for testing tools
+      - ENABLE_CORS=true
+      - CORS_ORIGINS=["*"]
+      
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uv run python -m src.main
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # Optional: Swagger UI for testing
+  api-tester:
+    image: swaggerapi/swagger-ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - URL=http://localhost:8000/openapi.json
+    depends_on:
+      - api
+
+  # Optional: Redis Commander for debugging
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    ports:
+      - "8082:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:

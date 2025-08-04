@@ -1,0 +1,37 @@
+{
+  "project": {
+    "name": "trm-blockexporter",
+    "type": "python",
+    "framework": "domain-driven-design",
+    "version": "1.0.0"
+  },
+  "preferences": {
+    "code_style": "pep8",
+    "max_line_length": 88,
+    "use_type_hints": true,
+    "documentation_style": "google",
+    "test_framework": "pytest"
+  },
+  "file_patterns": {
+    "ignore": [
+      "*.pyc",
+      "__pycache__/",
+      ".venv/",
+      ".env",
+      "*.log",
+      ".DS_Store"
+    ],
+    "important": [
+      "src/",
+      "tests/",
+      "pyproject.toml",
+      "requirements.txt"
+    ]
+  },
+  "custom_rules": [
+    "Always separate domain logic from infrastructure concerns",
+    "Use dependency injection for external dependencies",
+    "Write tests before implementing features (TDD)",
+    "Keep aggregates small and focused"
+  ]
+}

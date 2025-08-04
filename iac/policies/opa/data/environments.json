@@ -1,0 +1,61 @@
+{
+  "environments": {
+    "dev": {
+      "severity_overrides": {
+        "encryption": "WARNING",
+        "backup": "WARNING",
+        "monitoring": "WARNING",
+        "network_security": "WARNING"
+      },
+      "allowed_instance_types": [
+        "t3.micro",
+        "t3.small",
+        "t3.medium"
+      ],
+      "cost_optimization": true
+    },
+    "staging": {
+      "severity_overrides": {
+        "encryption": "ERROR",
+        "backup": "WARNING",
+        "monitoring": "WARNING",
+        "network_security": "ERROR"
+      },
+      "allowed_instance_types": [
+        "t3.small",
+        "t3.medium",
+        "t3.large"
+      ],
+      "cost_optimization": true
+    },
+    "prod": {
+      "severity_overrides": {
+        "encryption": "ERROR",
+        "backup": "ERROR",
+        "monitoring": "ERROR",
+        "network_security": "ERROR"
+      },
+      "allowed_instance_types": [
+        "t3.medium",
+        "t3.large",
+        "t3.xlarge",
+        "m5.large",
+        "m5.xlarge"
+      ],
+      "cost_optimization": false
+    }
+  },
+  "global_settings": {
+    "max_lambda_memory": 3008,
+    "max_lambda_timeout": 900,
+    "min_kms_deletion_days": {
+      "dev": 7,
+      "staging": 14,
+      "prod": 30
+    },
+    "required_tags": {
+      "all": ["Environment", "Project", "ManagedBy"],
+      "prod": ["Owner", "CostCenter", "BackupSchedule", "DataClassification"]
+    }
+  }
+}

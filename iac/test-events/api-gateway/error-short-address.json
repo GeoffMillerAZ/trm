@@ -1,0 +1,41 @@
+{
+  "resource": "/address/balance/{eth_address}",
+  "path": "/address/balance/0x123",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Host": "api.example.com",
+    "User-Agent": "Lambda-Test-Console",
+    "X-Forwarded-For": "127.0.0.1",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": ["application/json"],
+    "Content-Type": ["application/json"]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "eth_address": "0x123"
+  },
+  "stageVariables": {
+    "stage": "dev"
+  },
+  "requestContext": {
+    "resourcePath": "/address/balance/{eth_address}",
+    "httpMethod": "GET",
+    "path": "/dev/address/balance/0x123",
+    "stage": "dev",
+    "requestId": "test-error-short-001",
+    "identity": {
+      "sourceIp": "127.0.0.1",
+      "userAgent": "Lambda-Test-Console"
+    },
+    "domainName": "api.example.com",
+    "apiId": "test-api-id"
+  },
+  "body": null,
+  "isBase64Encoded": false
+}

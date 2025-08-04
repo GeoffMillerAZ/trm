@@ -1,0 +1,56 @@
+version: '3'
+
+vars:
+  IMAGE_NAME: ddd-python-api
+  IMAGE_TAG: 
+    sh: cat .versioning/current/VERSION
+
+tasks:
+  docker:build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t {{.IMAGE_NAME}}:{{.IMAGE_TAG}} .
+      - docker tag {{.IMAGE_NAME}}:{{.IMAGE_TAG}} {{.IMAGE_NAME}}:latest
+
+  docker:run:
+    desc: Run Docker container
+    cmds:
+      - docker run -p 8000:8000 {{.IMAGE_NAME}}:latest
+
+  docker:push:
+    desc: Push Docker image to registry
+    cmds:
+      - echo "Configure your registry first"
+      - docker push {{.IMAGE_NAME}}:{{.IMAGE_TAG}}
+      - docker push {{.IMAGE_NAME}}:latest
+
+  compose:up:
+    desc: Start services with docker-compose
+    cmds:
+      - docker-compose up --build
+
+  compose:down:
+    desc: Stop services with docker-compose
+    cmds:
+      - docker-compose down
+
+  compose:logs:
+    desc: Show docker-compose logs
+    cmds:
+      - docker-compose logs -f
+
+  package:
+    desc: Build Python package
+    cmds:
+      - uv build
+
+  package:check:
+    desc: Check package build
+    cmds:
+      - uv build --check
+
+  artifacts:clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf dist/ build/ *.egg-info/
+      - rm -rf workspace/artifacts/*

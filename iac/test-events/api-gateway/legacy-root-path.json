@@ -1,0 +1,39 @@
+{
+  "resource": "/",
+  "path": "/",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Host": "api.example.com",
+    "User-Agent": "curl/7.64.1",
+    "X-Forwarded-For": "192.168.1.100",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": ["application/json"],
+    "Content-Type": ["application/json"]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": {
+    "stage": "dev"
+  },
+  "requestContext": {
+    "resourcePath": "/",
+    "httpMethod": "GET",
+    "path": "/",
+    "stage": "dev",
+    "requestId": "test-legacy-root-001",
+    "identity": {
+      "sourceIp": "192.168.1.100",
+      "userAgent": "curl/7.64.1"
+    },
+    "domainName": "api.example.com",
+    "apiId": "test-api-id"
+  },
+  "body": null,
+  "isBase64Encoded": false
+}

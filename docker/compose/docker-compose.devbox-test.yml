@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  api-devbox:
+    build:
+      context: ../..
+      dockerfile: docker/dockerfiles/Dockerfile.devbox
+      cache_from:
+        - type=gha
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    ports:
+      - "8000:8000"
+    environment:
+      - INFURA_API_KEY=${INFURA_API_KEY:-your_infura_key_here}
+      - ENVIRONMENT=local
+      - REDIS_URL=redis://redis:6379
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_DEFAULT_REGION=us-west-2
+      - CONFIG_FILE=configs/local-dev-docker.yaml
+    depends_on:
+      - redis
+      - dynamodb-local
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/code/src:ro
+      - ./tests:/code/tests:ro
+      - ./configs:/code/configs:ro
+      
+      # Mount Nix store from host to speed up builds
+      - /nix/store:/nix/store:ro
+      - ~/.cache/nix:/home/devbox/.cache/nix:ro
+      
+      # Workspace directories
+      - api_workspace:/code/workspace
+    command: devbox run -- uv run python -m src.main
+    networks:
+      - trm-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - trm-network
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8001:8000"  # Map to different port to avoid conflict
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/home/dynamodblocal/data"]
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+    networks:
+      - trm-network
+
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    ports:
+      - "8002:8001"
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=us-west-2
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+    networks:
+      - trm-network
+
+  # Optional: Run tests in container
+  test-runner:
+    build:
+      context: ../..
+      dockerfile: docker/dockerfiles/Dockerfile.devbox
+    environment:
+      - CI=true
+      - CONFIG_FILE=configs/local-dev-docker.yaml
+      - ENVIRONMENT=test
+      - REDIS_URL=redis://redis:6379
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_DEFAULT_REGION=us-west-2
+    depends_on:
+      - redis
+      - dynamodb-local
+    volumes:
+      # Mount source for testing
+      - ./:/code:ro
+      - /nix/store:/nix/store:ro
+      - ~/.cache/nix:/home/devbox/.cache/nix:ro
+      - test_workspace:/code/workspace
+    command: devbox run -- bash -c "uv run pytest -v --cov=src"
+    profiles:
+      - test
+    networks:
+      - trm-network
+
+volumes:
+  redis_data:
+  dynamodb_data:
+  api_workspace:
+  test_workspace:
+
+networks:
+  trm-network:
+    driver: bridge

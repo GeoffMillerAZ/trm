@@ -1,0 +1,88 @@
+version: '3'
+
+tasks:
+  lint:
+    desc: Run Python linting with ruff
+    cmds:
+      - uv run ruff check src/ tests/
+
+  lint:fix:
+    desc: Run Python linting with auto-fix
+    cmds:
+      - uv run ruff check --fix src/ tests/
+
+  format:
+    desc: Format Python code with ruff
+    cmds:
+      - uv run ruff format src/ tests/
+
+  format:check:
+    desc: Check Python code formatting
+    cmds:
+      - uv run ruff format --check src/ tests/
+
+  type-check:
+    desc: Run type checking with mypy
+    cmds:
+      - uv run mypy src/
+
+  type-check:strict:
+    desc: Run strict type checking
+    cmds:
+      - uv run mypy --strict src/
+
+  security:
+    desc: Run security checks
+    cmds:
+      - uv run bandit -r src/
+
+  complexity:
+    desc: Check code complexity
+    cmds:
+      - uv run radon cc src/ -a
+
+  imports:sort:
+    desc: Sort imports (handled by ruff)
+    cmds:
+      - uv run ruff check --select I --fix src/ tests/
+
+  quality:all:
+    desc: Run all Python quality checks
+    cmds:
+      - task: lint
+      - task: format:check
+      - task: type-check
+
+  quality:fix:
+    desc: Auto-fix all Python quality issues
+    cmds:
+      - task: lint:fix
+      - task: format
+
+  profile:
+    desc: Profile Python code performance
+    cmds:
+      - echo "Profiling not yet implemented - add profiling tools as needed"
+
+  docs:generate:
+    desc: Generate Python documentation
+    cmds:
+      - echo "Documentation generation not yet implemented"
+
+  dependencies:check:
+    desc: Check for security vulnerabilities in dependencies
+    cmds:
+      - uv pip check
+
+  dependencies:audit:
+    desc: Audit dependencies for known vulnerabilities
+    cmds:
+      - echo "Dependency audit not yet implemented - consider adding safety or similar"
+
+  clean:cache:
+    desc: Clean Python cache files
+    cmds:
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
+      - find . -type f -name "*.pyc" -delete
+      - find . -type f -name "*.pyo" -delete
+      - rm -rf .mypy_cache .ruff_cache

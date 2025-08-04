@@ -1,0 +1,32 @@
+{
+  "packages": [
+    "python@3.11.13",
+    "uv@0.8.2",
+    "lefthook@1.11.15",
+    "go-task@3.44.0",
+    "git-lfs@3.6.1",
+    "nushell@0.105.1",
+    "go@1.21.13",
+    "terraform@1.12.2",
+    "terraform-docs@0.20.0",
+    "tflint@0.58.0",
+    "tfsec@1.28.14",
+    "conftest@0.62.0",
+    "jq@1.8.1",
+    "yq@3.4.3",
+    "httpie@3.2.4",
+    "gum@0.16.2",
+    "watch@3.3.17",
+    "git-filter-repo@2.47.0",
+    "eza@0.23.0"
+  ],
+  "shell": {},
+  "env": {
+    "UV_PYTHON": "python3.11",
+    "SHELL": "zsh",
+    "GOPATH": "$PWD/workspace/go",
+    "PATH": "$PATH:$GOPATH/bin",
+    "DOCKER_HOST": "unix://$HOME/.colima/default/docker.sock",
+    "TF_PLUGIN_CACHE_DIR": "$HOME/.terraform.d/plugin-cache"
+  }
+}

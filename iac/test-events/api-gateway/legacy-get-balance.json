@@ -1,0 +1,41 @@
+{
+  "resource": "/address/balance/{eth_address}",
+  "path": "/address/balance/0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "*/*",
+    "Content-Type": "application/json",
+    "Host": "api.example.com",
+    "User-Agent": "curl/7.64.1",
+    "X-Forwarded-For": "192.168.1.100",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": ["*/*"],
+    "Content-Type": ["application/json"]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "eth_address": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"
+  },
+  "stageVariables": {
+    "stage": "dev"
+  },
+  "requestContext": {
+    "resourcePath": "/address/balance/{eth_address}",
+    "httpMethod": "GET",
+    "path": "/address/balance/0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+    "stage": "dev",
+    "requestId": "test-request-id-legacy-001",
+    "identity": {
+      "sourceIp": "192.168.1.100",
+      "userAgent": "curl/7.64.1"
+    },
+    "domainName": "api.example.com",
+    "apiId": "test-api-id"
+  },
+  "body": null,
+  "isBase64Encoded": false
+}

@@ -1,0 +1,71 @@
+services:
+  devbox:
+    build:
+      context: ../..
+      dockerfile: docker/dockerfiles/Dockerfile.devbox
+    volumes:
+      # Mount the code directory
+      - ../..:/code:cached
+      # Mount devbox cache from host for faster builds
+      - ~/.cache/devbox:/home/devbox/.cache/devbox:cached
+      # Mount nix store cache
+      - devbox-nix:/nix/store:cached
+    environment:
+      - ENVIRONMENT=local
+      - CONFIG_FILE=configs/local-dev-mocks.yaml
+    ports:
+      - "8000:8000"
+    command: devbox shell -- uv run python -m src.main
+    stdin_open: true
+    tty: true
+
+  # For testing with services
+  devbox-with-services:
+    extends: devbox
+    environment:
+      - ENVIRONMENT=local
+      - CONFIG_FILE=configs/local-dev-docker.yaml
+      - REDIS_URL=redis://redis:6379
+      - DYNAMODB_ENDPOINT=http://dynamodb:8000
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_REGION=us-east-1
+      - INFURA_API_KEY=dummy_key_for_testing
+    depends_on:
+      redis:
+        condition: service_healthy
+      dynamodb:
+        condition: service_healthy
+    networks:
+      - services
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - services
+
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8001:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'healthy'"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - services
+
+volumes:
+  devbox-nix:
+
+networks:
+  services:

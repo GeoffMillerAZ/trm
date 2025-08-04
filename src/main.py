@@ -143,7 +143,7 @@ if __name__ == "__main__":
         uvicorn.run(
             "src.main:app",
             host="0.0.0.0",
-            port=8080,  # Changed to match original Flask app port
+            port=8080,
             reload=settings.debug,
             log_level=settings.log_level.lower(),
             access_log=settings.debug,

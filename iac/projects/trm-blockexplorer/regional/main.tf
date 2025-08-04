@@ -536,6 +536,10 @@ module "ecs_service" {
     {
       name  = "KMS_SECRETS_KEY_ARN"
       value = var.kms_secrets_key_arn
+    },
+    {
+      name  = "USE_MOCK_BLOCKCHAIN"
+      value = tostring(var.use_mock_blockchain)
     }
   ]
 

@@ -73,6 +73,12 @@ variable "enable_nat_gateway" {
   default     = true
 }
 
+# DNS Configuration
+variable "hosted_zone_id" {
+  description = "Route 53 hosted zone ID for DNS records"
+  type        = string
+}
+
 # ECS Configuration
 variable "ecs_cluster_name" {
   description = "ECS cluster name from global resources"
@@ -130,6 +136,13 @@ variable "alarm_email_endpoints" {
 }
 
 # Tags
+# Development-specific Configuration
+variable "use_mock_blockchain" {
+  description = "Whether to use mock blockchain or real Infura API"
+  type        = bool
+  default     = false
+}
+
 variable "additional_tags" {
   description = "Additional tags for resources"
   type        = map(string)

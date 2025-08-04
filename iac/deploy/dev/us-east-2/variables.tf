@@ -80,7 +80,7 @@ variable "ecs_cluster_name" {
 }
 
 variable "ecs_task_execution_role_arn" {
-  description = "ECS task execution role ARN from global resources"  
+  description = "ECS task execution role ARN from global resources"
   type        = string
 }
 
@@ -153,6 +153,13 @@ variable "alarm_email_endpoints" {
 }
 
 # Tags
+# Development-specific Configuration
+variable "use_mock_blockchain" {
+  description = "Whether to use mock blockchain or real Infura API"
+  type        = bool
+  default     = false
+}
+
 variable "additional_tags" {
   description = "Additional tags for resources"
   type        = map(string)

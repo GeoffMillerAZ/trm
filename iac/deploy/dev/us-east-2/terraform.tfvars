@@ -4,7 +4,7 @@
 # Terraform state bucket for accessing global state
 terraform_state_bucket = "trm-blockexplorer-terraform-state-754419183698-us-west-2"
 
-# ECS Configuration from Global Resources  
+# ECS Configuration from Global Resources
 ecs_cluster_name             = "trm-blockexplorer-dev-cluster"
 ecs_task_execution_role_arn  = "arn:aws:iam::754419183698:role/trm-blockexplorer-dev-ecs-task-execution-role"
 ecs_task_role_arn           = "arn:aws:iam::754419183698:role/trm-blockexplorer-dev-ecs-task-role"
@@ -31,6 +31,9 @@ api_gateway_config = {
   cache_cluster_size   = "0.5"
   cache_ttl_seconds    = 60    # Shorter for dev
   throttle_burst_limit = 100   # Lower for dev
-  throttle_rate_limit  = 50    # Lower for dev  
+  throttle_rate_limit  = 50    # Lower for dev
   api_key_source       = "HEADER"
 }
+
+# Application Configuration
+use_mock_blockchain = false

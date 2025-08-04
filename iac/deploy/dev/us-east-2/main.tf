@@ -144,5 +144,8 @@ module "regional" {
     enable_cross_region_backup    = false
   }
 
+  # Application Configuration
+  use_mock_blockchain = var.use_mock_blockchain
+
   tags = var.additional_tags
 }

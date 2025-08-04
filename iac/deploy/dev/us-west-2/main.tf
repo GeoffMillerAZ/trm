@@ -120,5 +120,8 @@ module "regional" {
     enable_deletion_protection = false # Disabled for dev flexibility
   }
 
+  # Application Configuration
+  use_mock_blockchain = var.use_mock_blockchain
+
   tags = var.additional_tags
 }

@@ -37,3 +37,6 @@ api_gateway_config = {
   throttle_rate_limit  = 50    # Lower for dev
   api_key_source       = "HEADER"
 }
+
+# Application Configuration
+use_mock_blockchain = false

@@ -312,6 +312,13 @@ variable "cost_optimization" {
   }
 }
 
+# Application Configuration
+variable "use_mock_blockchain" {
+  description = "Whether to use mock blockchain or real Infura API"
+  type        = bool
+  default     = false
+}
+
 # Tags
 variable "tags" {
   description = "Additional tags for all resources"

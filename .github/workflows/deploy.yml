@@ -365,6 +365,27 @@ jobs:
       (needs.approval.result == 'success' || needs.determine-environment.outputs.environment == 'development')
 
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    - name: Download Terraform plan
+      uses: actions/download-artifact@v4
+      with:
+        name: tfplan-global
+        path: iac/deploy/${{ needs.determine-environment.outputs.env_dir }}/global/
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+    - name: Apply Terraform changes
+      run: |
+        cd iac/deploy/${{ needs.determine-environment.outputs.env_dir }}/global
+        terraform apply -auto-approve tfplan
 
   deploy-us-west-2:
     name: Deploy us-west-2 Infrastructure

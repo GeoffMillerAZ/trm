@@ -24,10 +24,10 @@ resource "aws_lb" "main" {
   security_groups    = var.security_group_ids
   subnets            = var.subnet_ids
 
-  enable_deletion_protection = var.enable_deletion_protection
-  enable_http2              = var.enable_http2
+  enable_deletion_protection       = var.enable_deletion_protection
+  enable_http2                     = var.enable_http2
   enable_cross_zone_load_balancing = var.enable_cross_zone_load_balancing
-  
+
   # Access logs (optional)
   dynamic "access_logs" {
     for_each = var.access_logs_config != null ? [var.access_logs_config] : []
@@ -179,7 +179,7 @@ resource "aws_lb_listener_rule" "rules" {
   action {
     type             = each.value.action.type
     target_group_arn = each.value.action.type == "forward" ? aws_lb_target_group.additional[each.value.action.target_group].arn : null
-    
+
     dynamic "redirect" {
       for_each = each.value.action.type == "redirect" ? [each.value.action.redirect] : []
       content {

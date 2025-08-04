@@ -161,10 +161,10 @@ resource "aws_security_group" "ecs" {
 
   # Inbound from ALB
   ingress {
-    description = "From ALB"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
+    description     = "From ALB"
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
     security_groups = var.create_security_groups ? [aws_security_group.alb[0].id] : []
   }
 

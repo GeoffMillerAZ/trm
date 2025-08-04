@@ -136,15 +136,15 @@ variable "health_check" {
 variable "deployment_configuration" {
   description = "ECS service deployment configuration"
   type = object({
-    maximum_percent          = number
-    minimum_healthy_percent  = number
-    enable_circuit_breaker   = bool
+    maximum_percent         = number
+    minimum_healthy_percent = number
+    enable_circuit_breaker  = bool
     enable_rollback         = bool
   })
   default = {
-    maximum_percent          = 200
-    minimum_healthy_percent  = 100
-    enable_circuit_breaker   = true
+    maximum_percent         = 200
+    minimum_healthy_percent = 100
+    enable_circuit_breaker  = true
     enable_rollback         = true
   }
 }
@@ -201,14 +201,14 @@ variable "autoscaling_config" {
     min_capacity               = number
     max_capacity               = number
     enable_cpu_scaling         = optional(bool, true)
-    cpu_target_value          = optional(number, 70)
+    cpu_target_value           = optional(number, 70)
     enable_memory_scaling      = optional(bool, false)
-    memory_target_value       = optional(number, 80)
+    memory_target_value        = optional(number, 80)
     enable_alb_request_scaling = optional(bool, false)
-    alb_resource_label        = optional(string)
-    alb_request_target_value  = optional(number, 1000)
-    scale_in_cooldown         = optional(number, 300)
-    scale_out_cooldown        = optional(number, 60)
+    alb_resource_label         = optional(string)
+    alb_request_target_value   = optional(number, 1000)
+    scale_in_cooldown          = optional(number, 300)
+    scale_out_cooldown         = optional(number, 60)
     scheduled_actions = optional(map(object({
       schedule     = string
       min_capacity = optional(number)

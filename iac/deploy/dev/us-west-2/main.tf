@@ -77,9 +77,9 @@ module "regional" {
   # ECS Configuration
   ecs_cluster_name            = var.ecs_cluster_name
   ecs_task_execution_role_arn = var.ecs_task_execution_role_arn
-  ecs_task_role_arn          = var.ecs_task_role_arn
-  container_image_uri        = var.container_image_uri
-  ecs_service_config         = var.ecs_service_config
+  ecs_task_role_arn           = var.ecs_task_role_arn
+  container_image_uri         = var.container_image_uri
+  ecs_service_config          = var.ecs_service_config
 
   # Development-specific API Gateway Configuration (ECS integration)
   api_gateway_config = var.api_gateway_config

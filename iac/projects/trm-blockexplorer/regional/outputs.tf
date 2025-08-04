@@ -106,7 +106,7 @@ output "acm_certificate_arn" {
 output "dns_records" {
   description = "DNS records created"
   value = {
-    root_domain = var.hosted_zone_id != null ? var.domain_name : null
+    root_domain   = var.hosted_zone_id != null ? var.domain_name : null
     api_subdomain = var.hosted_zone_id != null ? "api.${var.domain_name}" : null
   }
 }
@@ -157,7 +157,7 @@ output "sns_topic_arn" {
 output "application_endpoints" {
   description = "Application endpoint URLs"
   value = {
-    alb_endpoint              = "https://${aws_lb.alb.dns_name}"
+    alb_endpoint             = "https://${aws_lb.alb.dns_name}"
     root_domain_url          = var.hosted_zone_id != null ? "https://${var.domain_name}" : null
     api_subdomain_url        = var.hosted_zone_id != null ? "https://api.${var.domain_name}" : null
     health_endpoint          = var.hosted_zone_id != null ? "https://${var.domain_name}/health" : "https://${aws_lb.alb.dns_name}/health"
@@ -206,10 +206,10 @@ output "regional_configuration" {
     deletion_protection    = var.cost_optimization.enable_deletion_protection
 
     # Performance settings
-    ecs_cpu_size              = var.ecs_service_config.cpu
-    ecs_memory_size           = var.ecs_service_config.memory
-    ecs_desired_count         = var.ecs_service_config.desired_count
-    ecs_autoscaling_enabled   = var.ecs_service_config.enable_autoscaling
+    ecs_cpu_size            = var.ecs_service_config.cpu
+    ecs_memory_size         = var.ecs_service_config.memory
+    ecs_desired_count       = var.ecs_service_config.desired_count
+    ecs_autoscaling_enabled = var.ecs_service_config.enable_autoscaling
   }
 }
 
@@ -219,7 +219,7 @@ output "deployment_info" {
   value = {
     # ECS deployment
     ecs_service = {
-      service_name         = module.ecs_service.service_name
+      service_name        = module.ecs_service.service_name
       service_arn         = module.ecs_service.service_arn
       task_definition_arn = module.ecs_service.task_definition_arn
       log_group           = local.ecs_log_group_name

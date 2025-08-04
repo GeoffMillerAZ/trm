@@ -347,7 +347,7 @@ resource "aws_api_gateway_deployment" "main" {
         try(aws_api_gateway_integration.address_balance_lambda[0].id, ""),
         try(aws_api_gateway_integration.watchlist_addresses_get_lambda[0].id, ""),
         try(aws_api_gateway_integration.watchlist_addresses_post_lambda[0].id, ""),
-      ] : [
+        ] : [
         try(aws_api_gateway_integration.health_http[0].id, ""),
         try(aws_api_gateway_integration.address_balance_http[0].id, ""),
         try(aws_api_gateway_integration.watchlist_addresses_get_http[0].id, ""),

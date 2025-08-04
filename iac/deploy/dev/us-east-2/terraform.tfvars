@@ -5,8 +5,8 @@
 terraform_state_bucket = "trm-blockexplorer-terraform-state-754419183698-us-west-2"
 
 # ECS Configuration from Global Resources
-ecs_cluster_name             = "trm-blockexplorer-dev-cluster"
-ecs_task_execution_role_arn  = "arn:aws:iam::754419183698:role/trm-blockexplorer-dev-ecs-task-execution-role"
+ecs_cluster_name            = "trm-blockexplorer-dev-cluster"
+ecs_task_execution_role_arn = "arn:aws:iam::754419183698:role/trm-blockexplorer-dev-ecs-task-execution-role"
 ecs_task_role_arn           = "arn:aws:iam::754419183698:role/trm-blockexplorer-dev-ecs-task-role"
 
 # Container Configuration (different ECR repo per region)
@@ -18,7 +18,7 @@ ecs_service_config = {
   memory                 = 512
   desired_count          = 1
   container_port         = 8000
-  enable_autoscaling     = false  # Disabled for dev cost optimization
+  enable_autoscaling     = false # Disabled for dev cost optimization
   min_capacity           = 1
   max_capacity           = 2
   target_cpu_utilization = 70
@@ -29,9 +29,9 @@ ecs_service_config = {
 api_gateway_config = {
   enable_caching       = false # Disabled for dev
   cache_cluster_size   = "0.5"
-  cache_ttl_seconds    = 60    # Shorter for dev
-  throttle_burst_limit = 100   # Lower for dev
-  throttle_rate_limit  = 50    # Lower for dev
+  cache_ttl_seconds    = 60  # Shorter for dev
+  throttle_burst_limit = 100 # Lower for dev
+  throttle_rate_limit  = 50  # Lower for dev
   api_key_source       = "HEADER"
 }
 

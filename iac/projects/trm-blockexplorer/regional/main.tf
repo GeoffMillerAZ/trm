@@ -149,8 +149,8 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_ecr_readonly" {
 # Policy for ECR access to allow pulling container images
 resource "aws_iam_role_policy" "ecs_task_execution_ecr" {
   count = 0 # Disabling this as it's covered by the managed policy
-  name = "${var.project_name}-ecs-task-execution-ecr-${var.environment}"
-  role = aws_iam_role.ecs_task_execution.id
+  name  = "${var.project_name}-ecs-task-execution-ecr-${var.environment}"
+  role  = aws_iam_role.ecs_task_execution.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -197,8 +197,8 @@ resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
         ]
       },
       {
-        Effect = "Allow"
-        Action = "kms:Decrypt"
+        Effect   = "Allow"
+        Action   = "kms:Decrypt"
         Resource = "*"
       }
     ]
@@ -336,7 +336,7 @@ module "ecs_cluster" {
   enable_container_insights = true
   enable_fargate            = true
   enable_ec2                = false
-  kms_key_arn              = var.kms_secrets_key_arn
+  kms_key_arn               = var.kms_secrets_key_arn
 
   default_capacity_provider_strategy = [
     {
@@ -389,13 +389,13 @@ resource "aws_security_group" "public_alb" {
 # Public Application Load Balancer for ECS service access
 resource "aws_lb" "alb" {
   name               = "${var.project_name}-${var.environment}-alb"
-  internal           = false  # Public-facing
+  internal           = false # Public-facing
   load_balancer_type = "application"
-  subnets            = module.networking.public_subnet_ids  # Use public subnets
+  subnets            = module.networking.public_subnet_ids # Use public subnets
   security_groups    = [aws_security_group.public_alb.id]
 
-  enable_deletion_protection = false
-  enable_http2              = true
+  enable_deletion_protection       = false
+  enable_http2                     = true
   enable_cross_zone_load_balancing = true
 
   tags = merge(local.common_tags, {
@@ -410,7 +410,7 @@ resource "aws_lb_target_group" "alb_ecs" {
   port        = var.ecs_service_config.container_port
   protocol    = "HTTP"
   vpc_id      = module.networking.vpc_id
-  target_type = "ip"  # Required for Fargate
+  target_type = "ip" # Required for Fargate
 
   health_check {
     enabled             = true
@@ -485,22 +485,22 @@ locals {
 module "ecs_service" {
   source = "../../../modules/ecs-service"
 
-  project_name             = var.project_name
-  environment              = var.environment
-  service_name             = "api"
-  cluster_id               = module.ecs_cluster.cluster_id
-  cluster_name             = module.ecs_cluster.cluster_name
-  task_execution_role_arn  = aws_iam_role.ecs_task_execution.arn
+  project_name            = var.project_name
+  environment             = var.environment
+  service_name            = "api"
+  cluster_id              = module.ecs_cluster.cluster_id
+  cluster_name            = module.ecs_cluster.cluster_name
+  task_execution_role_arn = aws_iam_role.ecs_task_execution.arn
   task_role_arn           = aws_iam_role.ecs_task.arn
 
   # Parse container image URI to separate image and tag
   container_image = split(":", var.container_image_uri)[0]
   image_tag       = length(split(":", var.container_image_uri)) > 1 ? split(":", var.container_image_uri)[1] : "latest"
 
-  cpu           = tostring(var.ecs_service_config.cpu)
-  memory        = tostring(var.ecs_service_config.memory)
+  cpu            = tostring(var.ecs_service_config.cpu)
+  memory         = tostring(var.ecs_service_config.memory)
   container_port = var.ecs_service_config.container_port
-  desired_count = var.ecs_service_config.desired_count
+  desired_count  = var.ecs_service_config.desired_count
 
   log_group_name = local.ecs_log_group_name
 
@@ -564,9 +564,9 @@ module "ecs_service" {
 
   # Deployment configuration
   deployment_configuration = {
-    maximum_percent          = 200
-    minimum_healthy_percent  = 100
-    enable_circuit_breaker   = true
+    maximum_percent         = 200
+    minimum_healthy_percent = 100
+    enable_circuit_breaker  = true
     enable_rollback         = true
   }
 

@@ -68,11 +68,11 @@ variable "access_logs_config" {
 variable "target_group_config" {
   description = "Default target group configuration"
   type = object({
-    port                = number
-    protocol            = string
-    target_type         = string
+    port                 = number
+    protocol             = string
+    target_type          = string
     deregistration_delay = number
-    
+
     health_check = object({
       enabled             = bool
       healthy_threshold   = number
@@ -84,7 +84,7 @@ variable "target_group_config" {
       port                = string
       protocol            = string
     })
-    
+
     stickiness = optional(object({
       type            = string
       cookie_duration = number
@@ -92,11 +92,11 @@ variable "target_group_config" {
     }))
   })
   default = {
-    port                = 8000
-    protocol            = "HTTP"
-    target_type         = "ip"
+    port                 = 8000
+    protocol             = "HTTP"
+    target_type          = "ip"
     deregistration_delay = 300
-    
+
     health_check = {
       enabled             = true
       healthy_threshold   = 2
@@ -114,11 +114,11 @@ variable "target_group_config" {
 variable "additional_target_groups" {
   description = "Additional target groups for blue-green deployments or multiple services"
   type = map(object({
-    port                = number
-    protocol            = string
-    target_type         = string
+    port                 = number
+    protocol             = string
+    target_type          = string
     deregistration_delay = number
-    
+
     health_check = object({
       enabled             = bool
       healthy_threshold   = number
@@ -130,7 +130,7 @@ variable "additional_target_groups" {
       port                = string
       protocol            = string
     })
-    
+
     stickiness = optional(object({
       type            = string
       cookie_duration = number
@@ -174,11 +174,11 @@ variable "listener_rules" {
   description = "Listener rules for advanced routing"
   type = map(object({
     priority = number
-    
+
     action = object({
       type         = string
       target_group = optional(string)
-      
+
       redirect = optional(object({
         port        = string
         protocol    = string
@@ -187,18 +187,18 @@ variable "listener_rules" {
         path        = optional(string)
         query       = optional(string)
       }))
-      
+
       fixed_response = optional(object({
         content_type = string
         message_body = optional(string)
         status_code  = string
       }))
     })
-    
+
     # Conditions
-    path_pattern          = optional(string)
-    host_header          = optional(string)
-    http_request_method  = optional(list(string))
+    path_pattern        = optional(string)
+    host_header         = optional(string)
+    http_request_method = optional(list(string))
   }))
   default = {}
 }

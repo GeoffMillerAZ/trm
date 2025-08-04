@@ -101,6 +101,12 @@ docker-compose -f docker/compose/docker-compose.test.yml up
 - Includes DynamoDB Admin UI
 - Health checks enabled
 
+### Services (`docker-compose.services.yml`)
+- API service with real infrastructure (Redis, DynamoDB)
+- Uses mock blockchain but real caching/database
+- Includes Swagger UI for testing
+- Test with: `tests/httpie/run_all_tests.sh --env services`
+
 ### Devbox (`docker-compose.devbox.yml`)
 - Uses Devbox image
 - Mounts code for hot reload

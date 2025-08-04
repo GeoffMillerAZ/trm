@@ -10,7 +10,7 @@ services:
       args:
         BUILDKIT_INLINE_CACHE: 1
     ports:
-      - "8000:8000"
+      - "8000:8080"
     environment:
       - INFURA_API_KEY=${INFURA_API_KEY:-your_infura_key_here}
       - ENVIRONMENT=local
@@ -28,11 +28,11 @@ services:
       - ./src:/code/src:ro
       - ./tests:/code/tests:ro
       - ./configs:/code/configs:ro
-      
+
       # Mount Nix store from host to speed up builds
       - /nix/store:/nix/store:ro
       - ~/.cache/nix:/home/devbox/.cache/nix:ro
-      
+
       # Workspace directories
       - api_workspace:/code/workspace
     command: devbox run -- uv run python -m src.main

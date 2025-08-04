@@ -14,7 +14,7 @@ services:
       - ENVIRONMENT=local
       - CONFIG_FILE=configs/local-dev-mocks.yaml
     ports:
-      - "8000:8000"
+      - "8000:8080"
     command: devbox shell -- uv run python -m src.main
     stdin_open: true
     tty: true

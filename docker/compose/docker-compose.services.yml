@@ -34,7 +34,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=local
       - AWS_DEFAULT_REGION=us-east-1
     volumes:
-      - ./scripts/init-dynamodb.sh:/init-dynamodb.sh:ro
+      - ../../scripts/init-dynamodb.sh:/init-dynamodb.sh:ro
     entrypoint: ["/bin/bash", "/init-dynamodb.sh"]
     depends_on:
       dynamodb:
@@ -50,42 +50,42 @@ services:
       - ENVIRONMENT=local
       - USE_MOCK_BLOCKCHAIN=true
       - USE_FILE_BASED_INFRASTRUCTURE=false
-      
+
       # Redis configuration
       - REDIS_URL=redis://redis:6379
       - CACHE_ENABLED=true
       - CACHE_TTL_SECONDS=300
-      
+
       # DynamoDB configuration
       - DYNAMODB_ENDPOINT=http://dynamodb:8000
       - DYNAMODB_TABLE_NAME=trm-blockexplorer
       - AWS_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=local
       - AWS_SECRET_ACCESS_KEY=local
-      
+
       # Logging configuration
       - LOG_LEVEL=DEBUG
       - LOG_FORMAT=json
       - ENABLE_CLOUDWATCH_LOGGING=false
-      
+
       # Tracing configuration
       - TRACING_BACKEND=console
       - TRACING_SERVICE_NAME=trm-blockexplorer-services
-      
+
       # Secrets backend
       - SECRETS_BACKEND=environment
-      
+
       # API Configuration
       - API_TITLE=TRM Block Explorer API (Services Mode)
       - DEBUG=true
-      
+
       # CORS for testing tools
       - ENABLE_CORS=true
       - CORS_ORIGINS=["*"]
-      
+
       # Infura key (using mock blockchain anyway)
       - INFURA_API_KEY=dummy_key_for_services_testing
-      
+
     depends_on:
       redis:
         condition: service_healthy

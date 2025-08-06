@@ -38,6 +38,7 @@ COPY --from=dependencies /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY --chown=appuser:appuser src/ ./src/
+COPY --chown=appuser:appuser configs/ ./configs/
 
 # Switch to non-root user
 USER appuser
@@ -50,15 +51,12 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/api/v1/health || exit 1
+    CMD curl -f http://localhost:8080/api/v1/health || exit 1
 
 # Expose port
-EXPOSE ${PORT}
+EXPOSE 8080
 
-# Run the application with optimal settings
-CMD ["uvicorn", "src.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8080", \
-     "--workers", "2", \
-     "--loop", "uvloop", \
-     "--access-log"]
+# Start the application
+CMD ["python", "-m", "src.main"]
+
+

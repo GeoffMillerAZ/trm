@@ -1,0 +1,47 @@
+# Configuration for local development with WAN access
+environment: "local"
+debug: true
+
+# API Configuration
+api_title: "TRM Block Explorer API (Local - WAN)"
+api_version: "2.0.0"
+api_description: "Local development with WAN services"
+
+# Use real Infura API
+use_file_based_infrastructure: false
+# infura_api_key is loaded from INFURA_API_KEY environment variable
+infura_network: "mainnet"
+
+# Cache Configuration (Mock)
+cache_enabled: true
+redis_url: "redis://redis:6379"
+cache_ttl_seconds: 60
+
+# Database Configuration (Mock)
+dynamodb_endpoint: "http://dynamodb:8000"
+aws_region: "us-west-2"
+aws_access_key_id: "local"
+aws_secret_access_key: "local"
+
+# Table Names
+address_watchlist_table: "address-watchlist-local-wan"
+suspicious_transactions_table: "suspicious-transactions-local-wan"
+investigation_notes_table: "investigation-notes-local-wan"
+
+# Logging Configuration
+log_level: "DEBUG"
+log_format: "text"
+enable_cloudwatch_logging: false
+
+# Secrets Configuration
+secrets_backend: "file"
+secrets_file_path: "workspace/secrets/local.json"
+
+# Tracing Configuration
+tracing_backend: "console"
+tracing_service_name: "trm-blockexplorer-local-wan"
+tracing_enabled: true
+
+# API Configuration
+api_cors_origins: ["http://localhost:3000", "http://localhost:8080"]
+enable_cors: true

@@ -1,11 +1,15 @@
 import os
 from decimal import Decimal
+from datetime import datetime
 
 import httpx
 import structlog
 
+from src.domain.entities.block import Block
 from src.domain.repositories.blockchain_repository import BlockchainRepository
+from src.domain.value_objects.block_hash import BlockHash
 from src.domain.value_objects.ethereum_address import EthereumAddress
+from src.domain.value_objects.transaction import Transaction
 
 logger = structlog.get_logger(__name__)
 
@@ -96,3 +100,63 @@ class InfuraBlockchainRepository(BlockchainRepository):
                 )
                 # Return 0 on any error, matching original Flask behavior
                 return Decimal("0")
+
+    async def get_block_by_hash(self, block_hash: BlockHash) -> Block | None:
+        """Get a block by its hash via Infura API."""
+        headers = {"Content-Type": "application/json"}
+        json_data = {
+            "jsonrpc": "2.0",
+            "method": "eth_getBlockByHash",
+            "params": [block_hash.value, True],  # True for full transaction objects
+            "id": 1,
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                logger.debug("Making Infura API request for block", block_hash=block_hash.value)
+                response = await client.post(
+                    self.base_url, headers=headers, json=json_data, timeout=30.0
+                )
+                logger.debug(
+                    "Infura response received for block",
+                    status_code=response.status_code,
+                    block_hash=block_hash.value,
+                )
+
+                if response.status_code != 200:
+                    logger.error(
+                        "Infura API request for block failed",
+                        status_code=response.status_code,
+                        block_hash=block_hash.value,
+                    )
+                    return None
+
+                response_data = response.json()
+                if not response_data.get("result"):
+                    logger.warning("Block not found", block_hash=block_hash.value)
+                    return None
+
+                block_data = response_data["result"]
+                logger.debug(
+                    "Infura block response content",
+                    response=block_data,
+                    block_hash=block_hash.value,
+                )
+
+                transactions = [
+                    Transaction(hash=tx["hash"]) for tx in block_data.get("transactions", [])
+                ]
+
+                return Block(
+                    hash=BlockHash(block_data["hash"]),
+                    parent_hash=BlockHash(block_data["parentHash"]),
+                    number=int(block_data["number"], 16),
+                    timestamp=datetime.fromtimestamp(int(block_data["timestamp"], 16)),
+                    transactions=transactions,
+                )
+
+            except Exception as e:
+                logger.error(
+                    "Block retrieval failed", block_hash=block_hash.value, error=str(e)
+                )
+                return None

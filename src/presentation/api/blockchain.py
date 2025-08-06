@@ -9,7 +9,10 @@ from src.application.dtos.blockchain_dtos import (
     BalanceResponse,
     ErrorResponse,
 )
+from src.application.dtos.block_dtos import GetBlockByHashRequest, GetBlockByHashResponse
 from src.application.use_cases.get_address_balance import GetAddressBalanceUseCase
+from src.application.use_cases.get_block_by_hash import GetBlockByHashUseCase
+from src.presentation.dependencies.block import get_block_by_hash_use_case
 from src.presentation.dependencies.blockchain import get_balance_use_case
 
 logger = structlog.get_logger(__name__)
@@ -21,6 +24,36 @@ router = APIRouter(
         503: {"model": ErrorResponse, "description": "Service unavailable"},
     },
 )
+
+
+@router.get(
+    "/block/{block_hash}",
+    response_model=GetBlockByHashResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get block by hash",
+    description="Retrieve a block by its hash",
+)
+async def get_block_by_hash(
+    block_hash: str = Path(
+        ...,
+        description="Block hash to retrieve",
+        min_length=66,
+        max_length=66,
+        pattern=r"^0x[a-fA-F0-9]{64}$",
+    ),
+    use_case: GetBlockByHashUseCase = Depends(get_block_by_hash_use_case),
+) -> GetBlockByHashResponse:
+    """
+    Get a block by its hash.
+    """
+    try:
+        request = GetBlockByHashRequest(block_hash=block_hash)
+        response = await use_case.execute(request)
+        if not response.block:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
+        return response
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get(

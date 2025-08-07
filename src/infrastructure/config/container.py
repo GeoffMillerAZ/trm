@@ -70,6 +70,9 @@ class DIContainer:
             elif not self.settings.cache_enabled:
                 # Use mock cache when caching is disabled
                 self._cache = MockCache()
+            elif self.settings.use_mock_blockchain and not self.settings.redis_url:
+                # Mock mode - use mock cache when no Redis URL is configured
+                self._cache = MockCache()
             elif self.settings.is_local and not self.settings.redis_url.startswith(
                 "redis://"
             ):
@@ -96,6 +99,9 @@ class DIContainer:
                 )
                 # Ensure database structure exists
                 await self._database.create_table_if_not_exists()
+            elif self.settings.use_mock_blockchain and not self.settings.dynamodb_endpoint:
+                # Mock mode - use mock database when no DynamoDB endpoint is configured
+                self._database = MockDatabase()
             else:
                 # Use DynamoDB
                 dynamodb_config = self.settings.dynamodb_config

@@ -8,8 +8,12 @@ from pathlib import Path
 
 import structlog
 
+from src.domain.entities.block import Block
 from src.domain.repositories.blockchain_repository import BlockchainRepository
+from src.domain.value_objects.block_hash import BlockHash
 from src.domain.value_objects.ethereum_address import EthereumAddress
+from src.domain.value_objects.transaction import Transaction
+from src.infrastructure.test_data.blocks import get_all_test_blocks
 
 logger = structlog.get_logger(__name__)
 
@@ -77,9 +81,11 @@ class FileSystemBlockchainRepository(BlockchainRepository):
         """
         self.data_dir = Path(data_dir).resolve()
         self.addresses_dir = self.data_dir / "addresses"
+        self.blocks_dir = self.data_dir / "blocks"
 
         # Ensure directories exist
         self.addresses_dir.mkdir(parents=True, exist_ok=True)
+        self.blocks_dir.mkdir(parents=True, exist_ok=True)
 
         if auto_populate:
             self._populate_test_data()
@@ -124,6 +130,9 @@ class FileSystemBlockchainRepository(BlockchainRepository):
             total_addresses=len(addresses_to_generate),
             data_dir=str(self.data_dir),
         )
+
+        # Also populate test blocks
+        self._populate_test_blocks()
 
     def _generate_test_address(self, index: int) -> str:
         """Generate a test Ethereum address based on index."""
@@ -284,3 +293,86 @@ class FileSystemBlockchainRepository(BlockchainRepository):
                 continue
 
         return addresses
+
+    def _populate_test_blocks(self) -> None:
+        """Populate filesystem with test blocks."""
+        test_blocks = get_all_test_blocks()
+        block_count = 0
+        
+        for block_hash, block in test_blocks.items():
+            if block is not None:  # Skip None entries (non-existent blocks)
+                self._write_block(block_hash, block)
+                block_count += 1
+        
+        logger.info("Populated test blocks", count=block_count)
+
+    def _write_block(self, block_hash: str, block: Block) -> None:
+        """Write block data to filesystem."""
+        block_file = self.blocks_dir / f"{block_hash.lower()}.json"
+        
+        data = {
+            "hash": block.hash.value,
+            "parent_hash": block.parent_hash.value,
+            "number": block.number,
+            "timestamp": block.timestamp.isoformat(),
+            "transactions": [tx.hash for tx in block.transactions],
+            "retrieved_at": datetime.utcnow().isoformat(),
+        }
+        
+        with open(block_file, "w") as f:
+            json.dump(data, f, indent=2)
+
+    def _read_block(self, block_hash: str) -> Block | None:
+        """Read block data from filesystem."""
+        block_file = self.blocks_dir / f"{block_hash.lower()}.json"
+        
+        if not block_file.exists():
+            return None
+        
+        try:
+            with open(block_file) as f:
+                data = json.load(f)
+            
+            return Block(
+                hash=BlockHash(data["hash"]),
+                parent_hash=BlockHash(data["parent_hash"]),
+                number=data["number"],
+                timestamp=datetime.fromisoformat(data["timestamp"]),
+                transactions=[Transaction(hash=tx_hash) for tx_hash in data.get("transactions", [])]
+            )
+        
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.error(
+                "Failed to read block data", 
+                block_hash=block_hash, 
+                error=str(e)
+            )
+            return None
+
+    async def get_block_by_hash(self, block_hash: BlockHash) -> Block | None:
+        """
+        Get a block by its hash.
+        
+        Returns block from filesystem or None if not found.
+        """
+        logger.debug("Getting block from filesystem", block_hash=block_hash.value)
+        
+        # Try to read from filesystem
+        block = self._read_block(block_hash.value)
+        
+        if block is not None:
+            logger.debug(
+                "Block found in filesystem",
+                block_hash=block_hash.value,
+                block_number=block.number,
+            )
+            return block
+        
+        # Check if this is a known non-existent block for testing
+        # Return None without logging as error
+        logger.debug(
+            "Block not found in filesystem",
+            block_hash=block_hash.value,
+        )
+        
+        return None

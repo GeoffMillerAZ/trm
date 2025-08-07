@@ -1,0 +1,138 @@
+# Unified Docker Compose configuration with profiles for different test modes
+# 
+# Usage:
+#   TEST_MODE=mock docker-compose -f docker/compose/docker-compose.unified.yml up
+#   TEST_MODE=file-based docker-compose -f docker/compose/docker-compose.unified.yml up
+#   TEST_MODE=services docker-compose -f docker/compose/docker-compose.unified.yml up
+#   TEST_MODE=wan INFURA_API_KEY=xxx docker-compose -f docker/compose/docker-compose.unified.yml up
+#
+# Or use profiles directly:
+#   docker-compose -f docker/compose/docker-compose.unified.yml --profile mock up
+#   docker-compose -f docker/compose/docker-compose.unified.yml --profile services up
+
+services:
+  # Main API service - always runs
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    ports:
+      - "${API_PORT:-8000}:8080"
+    environment:
+      # Environment based on TEST_MODE
+      - ENVIRONMENT=${ENVIRONMENT:-local}
+      - USE_FILE_BASED_INFRASTRUCTURE=${USE_FILE_BASED_INFRASTRUCTURE:-false}
+      - USE_MOCK_BLOCKCHAIN=${USE_MOCK_BLOCKCHAIN:-true}
+      - CONFIG_FILE=${CONFIG_FILE:-}
+      - WORKSPACE_BASE_PATH=/app/workspace
+      
+      # Infura configuration (for WAN mode)
+      - INFURA_API_KEY=${INFURA_API_KEY:-dummy_key}
+      - INFURA_NETWORK=${INFURA_NETWORK:-mainnet}
+      
+      # Redis configuration (when using services)
+      - REDIS_URL=${REDIS_URL:-}
+      - CACHE_ENABLED=${CACHE_ENABLED:-true}
+      - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-300}
+      
+      # DynamoDB configuration (when using services)
+      - DYNAMODB_ENDPOINT=${DYNAMODB_ENDPOINT:-}
+      - DYNAMODB_TABLE_NAME=${DYNAMODB_TABLE_NAME:-}
+      - AWS_REGION=${AWS_REGION:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      
+      # Logging configuration
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      - LOG_FORMAT=${LOG_FORMAT:-text}
+      - ENABLE_CLOUDWATCH_LOGGING=false
+      
+      # Tracing configuration
+      - TRACING_BACKEND=${TRACING_BACKEND:-console}
+      - TRACING_SERVICE_NAME=${TRACING_SERVICE_NAME:-trm-blockexplorer}
+      
+      # Secrets backend
+      - SECRETS_BACKEND=${SECRETS_BACKEND:-environment}
+      - SECRETS_FILE_PATH=/app/workspace/secrets/local.json
+      
+      # API Configuration
+      - API_TITLE=${API_TITLE:-TRM Block Explorer API}
+      - DEBUG=${DEBUG:-true}
+      
+      # CORS for testing tools
+      - ENABLE_CORS=true
+      - CORS_ORIGINS=${CORS_ORIGINS:-["*"]}
+      
+    volumes:
+      - ../../src:/app/src:ro
+      - ../../workspace:/app/workspace
+      - ../../configs:/app/configs:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+        required: false
+      dynamodb:
+        condition: service_healthy
+        required: false
+      init-dynamodb:
+        condition: service_completed_successfully
+        required: false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    profiles: ["default", "mock", "file-based", "services", "wan"]
+
+  # Redis for caching (only for services and wan modes)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles: ["services", "wan"]
+
+  # DynamoDB Local for database (only for services and wan modes)
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "${DYNAMODB_PORT:-8001}:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'healthy'"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles: ["services", "wan"]
+
+  # Initialize DynamoDB table (only for services and wan modes)
+  init-dynamodb:
+    image: amazon/aws-cli:latest
+    environment:
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_DEFAULT_REGION=us-east-1
+      - TABLE_NAME=${DYNAMODB_TABLE_NAME:-trm-blockexplorer}
+    volumes:
+      - ../../scripts/init-dynamodb-dynamic.sh:/init-dynamodb.sh:ro
+    entrypoint: ["/bin/bash", "/init-dynamodb.sh"]
+    depends_on:
+      dynamodb:
+        condition: service_healthy
+    profiles: ["services", "wan"]
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  default:
+    name: trm-test-network

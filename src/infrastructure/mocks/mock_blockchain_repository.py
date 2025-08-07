@@ -3,8 +3,11 @@
 import asyncio
 from decimal import Decimal
 
+from src.domain.entities.block import Block
 from src.domain.repositories.blockchain_repository import BlockchainRepository
+from src.domain.value_objects.block_hash import BlockHash
 from src.domain.value_objects.ethereum_address import EthereumAddress
+from src.infrastructure.test_data.blocks import get_test_block
 
 
 class MockBlockchainRepository(BlockchainRepository):
@@ -127,3 +130,19 @@ class MockBlockchainRepository(BlockchainRepository):
             self._test_data = scenarios[scenario]
         else:
             raise ValueError(f"Unknown scenario: {scenario}")
+
+    async def get_block_by_hash(self, block_hash: BlockHash) -> Block | None:
+        """Get a block by its hash from test data.
+
+        Args:
+            block_hash: Block hash to retrieve
+
+        Returns:
+            Block if found, None otherwise
+        """
+        # Simulate network delay if configured
+        if self._delay_ms > 0:
+            await asyncio.sleep(self._delay_ms / 1000.0)
+
+        # Get block from test data
+        return get_test_block(block_hash.value)
